@@ -1,0 +1,11 @@
+PSA_ID,Domain,English,Kiswahili,Target_Language,Source,Date,URL
+HLT001,Health,Wash your hands regularly with soap and clean water.,Nawa mikono yako mara kwa mara kwa sabuni na maji safi.,,Ministry of Health,2026-01-15,
+HLT002,Health,Visit the nearest health facility if you experience malaria symptoms.,Tembelea kituo cha afya kilicho karibu ikiwa una dalili za malaria.,,Kenya Red Cross,2026-02-08,
+EDU001,Education,All learners should report to school on the official reopening date.,Wanafunzi wote wanapaswa kuripoti shuleni katika tarehe rasmi ya kufunguliwa.,,Ministry of Education,2026-01-08,
+EDU002,Education,Parents are encouraged to ensure regular school attendance.,Wazazi wanahimizwa kuhakikisha watoto wanahudhuria shule mara kwa mara.,,Ministry of Education,2026-01-15,
+AGR001,Agriculture,Farmers are encouraged to use certified seeds during planting.,Wakulima wanahimizwa kutumia mbegu zilizoidhinishwa wakati wa kupanda.,,Ministry of Agriculture,2026-02-10,
+AGR002,Agriculture,Vaccinate livestock regularly to prevent disease outbreaks.,Chanja mifugo mara kwa mara ili kuzuia milipuko ya magonjwa.,,Ministry of Agriculture,2026-02-21,
+SEC001,Security,Always wear your seatbelt while travelling.,Vaa mkanda wa usalama kila unapokuwa safarini.,,NTSA,2026-03-01,
+SEC002,Security,Report suspicious activities to the nearest police station.,Ripoti shughuli zinazotiliwa shaka katika kituo cha polisi kilicho karibu.,,National Police Service,2026-03-07,
+GOV001,Governance,Verify your voter registration details before the deadline.,Thibitisha taarifa zako za usajili wa mpiga kura kabla ya tarehe ya mwisho.,,IEBC,2026-04-01,
+GOV002,Governance,Access government services through the eCitizen platform.,Pata huduma za serikali kupitia jukwaa la eCitizen.,,eCitizen,2026-04-12,
