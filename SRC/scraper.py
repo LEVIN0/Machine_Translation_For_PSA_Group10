@@ -2,57 +2,42 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def fetch_page(url):
-    """
-    Downloads a webpage and returns a BeautifulSoup object.
-    """
+class PSAScraper:
 
-    headers = {
-        "User-Agent": (
+    def __init__(self):
+
+        self.headers = {
+            "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+
+    def get_page(self, url):
+
+        response = requests.get(
+            url,
+            headers=self.headers,
+            timeout=30
         )
-    }
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=30
-    )
+        response.raise_for_status()
 
-    response.raise_for_status()
+        return BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
 
-    return BeautifulSoup(response.text, "html.parser")
+    def get_paragraphs(self, url):
 
+        soup = self.get_page(url)
 
-def inspect_page(url):
-    """
-    Inspect the structure of a webpage.
-    """
+        paragraphs = []
 
-    soup = fetch_page(url)
+        for p in soup.find_all("p"):
 
-    print("=" * 60)
-    print("PAGE TITLE")
-    print("=" * 60)
-    print(soup.title.text if soup.title else "No title")
+            text = p.get_text(" ", strip=True)
 
-    print()
+            if len(text) > 40:
 
-    print("=" * 60)
-    print("HEADINGS")
-    print("=" * 60)
+                paragraphs.append(text)
 
-    for heading in soup.find_all(["h1", "h2", "h3"])[:10]:
-        print(heading.get_text(strip=True))
-
-    print()
-
-    print("=" * 60)
-    print("FIRST 20 LINKS")
-    print("=" * 60)
-
-    for link in soup.find_all("a", href=True)[:20]:
-        print(link.get_text(strip=True), "->", link["href"])
-
-
-    return soup
+        return paragraphs

@@ -1,0 +1,161 @@
+PSA_ID,Domain,English,Kiswahili,Dholuo,Source,Date,Metadata,Status
+PSA000001,Health,"WHO is continuously monitoring and responding to this pandemic. This questions and answers page will be updated as more is known about COVID-19, how it spreads and how it is affecting people worldwide. For more information, regularly check the WHO coronavirus pages. https://www.who.int/covid-19",,,WHO,2026-07-22,scraped,Pending
+PSA000002,Health,"COVID-19 is the disease caused by a coronavirus called
+SARS-CoV-2.  WHO first learned of this new virus on 31 December 2019,
+following a report of a cluster of cases of so-called viral pneumonia in Wuhan,
+People’s Republic of China.",,,WHO,2026-07-22,scraped,Pending
+PSA000004,Health,"The most common symptoms of COVID-19 are fever chills sore throat. Other symptoms that are less common and may affect some patients include: muscle aches severe fatigue or tiredness runny or blocked nose, or sneezing headache sore eyes dizziness new and persistent cough tight chest or chest pain shortness of breath hoarse voice heavy arms/legs numbness/tingling nausea, vomiting, abdominal pain/ belly ache, or diarrhoea appetite loss loss or change of sense of taste or smell difficulty sleeping. Symptoms of severe COVID‐19 disease which need immediate medical attention include: difficulty in breathing, especially at rest, or unable      to speak in sentences confusion drowsiness or loss of consciousness persistent pain or pressure in the chest skin being cold or clammy, or turning pale or a bluish      colour loss of speech or movement. If possible, call your health care provider, hotline or health facility first, so you can be directed to the right clinic. People who have pre-existing health problems are at higher risk when they have COVID-19; they should seek medical help early if worried about their condition. These include, but are not limited to: those taking immunosuppressive medication; those with chronic heart, lung, liver or rheumatological problems; those with HIV, diabetes, cancer or dementia.",,,WHO,2026-07-22,scraped,Pending
+PSA000005,Health,The most common symptoms of COVID-19 are,,,WHO,2026-07-22,scraped,Pending
+PSA000006,Health,Other symptoms that are less common and may affect some patients include:,,,WHO,2026-07-22,scraped,Pending
+PSA000007,Health,Symptoms of severe COVID‐19 disease which need immediate medical attention include:,,,WHO,2026-07-22,scraped,Pending
+PSA000008,Health,"If possible, call your health care provider, hotline or health facility first, so you can be directed to the right clinic.",,,WHO,2026-07-22,scraped,Pending
+PSA000009,Health,"People who have pre-existing health problems are at higher risk when they have COVID-19; they should seek medical help early if worried about their condition. These include, but are not limited to: those taking immunosuppressive medication; those with chronic heart, lung, liver or rheumatological problems; those with HIV, diabetes, cancer or dementia.",,,WHO,2026-07-22,scraped,Pending
+PSA000010,Health,"As testing rates fall, it is more difficult to know how many people have COVID-19 and do not seek any treatment. At the start of the pandemic, 15% of people were thought to become seriously unwell and require hospital treatment and oxygen. More recent estimates suggest that hospitalization is required in around 3% of people with COVID-19. This is partly due to immunization, partly due to changes in the virus (especially the Omicron variants), and partly due to the availability of targeted medical treatments. Most people make a full recovery without needing hospital treatment. For those with COVID-19 who are at high risk of severe illness (see question below), WHO has made recommendations on which drug treatments are effective in improving outcomes and preventing hospital admissions. It is also important to be vigilant in recognizing people with severe disease and those needing hospital treatment so that they are treated early. The consequences of severe COVID-19 include death, respiratory failure, sepsis, thromboembolism (blood clots), and multiorgan failure, including injury of the heart, liver or kidneys. In rare situations, children can develop a severe inflammatory syndrome a few weeks after infection.",,,WHO,2026-07-22,scraped,Pending
+PSA000011,Health,"As testing rates fall, it is more difficult to know how many people have COVID-19 and do not seek any treatment. At the start of the pandemic, 15% of people were thought to become seriously unwell and require hospital treatment and oxygen. More recent estimates suggest that hospitalization is required in around 3% of people with COVID-19. This is partly due to immunization, partly due to changes in the virus (especially the Omicron variants), and partly due to the availability of targeted medical treatments.",,,WHO,2026-07-22,scraped,Pending
+PSA000012,Health,"Most people make a full recovery without needing hospital treatment. For those with COVID-19 who are at high risk of severe illness (see question below), WHO has made recommendations on which drug treatments are effective in improving outcomes and preventing hospital admissions.",,,WHO,2026-07-22,scraped,Pending
+PSA000013,Health,"It is also important to be vigilant in recognizing people with severe disease and those needing hospital treatment so that they are treated early. The consequences of severe COVID-19 include death, respiratory failure, sepsis, thromboembolism (blood clots), and multiorgan failure, including injury of the heart, liver or kidneys.",,,WHO,2026-07-22,scraped,Pending
+PSA000014,Health,"In rare situations, children can develop a severe inflammatory syndrome a few weeks after infection.",,,WHO,2026-07-22,scraped,Pending
+PSA000015,Health,"People aged 60 years and over, and those with underlying medical
+problems like high blood pressure, diabetes, other chronic health problems (for
+example those affecting the heart, lungs, kidneys, and brain), low immune
+function / immunosuppression (including HIV), obesity, cancer, and unvaccinated
+people are most at risk of severe illness. However, anyone at any age can get sick with COVID-19 and become
+seriously ill or die.",,,WHO,2026-07-22,scraped,Pending
+PSA000016,Health,"People aged 60 years and over, and those with underlying medical
+problems like high blood pressure, diabetes, other chronic health problems (for
+example those affecting the heart, lungs, kidneys, and brain), low immune
+function / immunosuppression (including HIV), obesity, cancer, and unvaccinated
+people are most at risk of severe illness.",,,WHO,2026-07-22,scraped,Pending
+PSA000017,Health,"However, anyone at any age can get sick with COVID-19 and become
+seriously ill or die.",,,WHO,2026-07-22,scraped,Pending
+PSA000018,Health,"Some people who have had COVID-19, whether they have needed hospitalization or not, continue to experience symptoms, including fatigue, respiratory and neurological symptoms. These long-term effects are called post COVID-19 condition (also called long COVID). For further information on long COVID , see post COVID-19 condition and questions and answers .",,,WHO,2026-07-22,scraped,Pending
+PSA000020,Health,"You can protect yourself and others from COVID-19 by following preventive measures, such as keeping a distance, wearing a mask in crowded and poorly ventilated spaces, practicing hand hygiene, respiratory etiquette (covering your mouth and nose with a bent elbow or a tissue when you cough or sneeze), getting vaccinated and staying up to date with booster doses. Check local advice where you live and work. Read our public advice page for more information.",,,WHO,2026-07-22,scraped,Pending
+PSA000021,Health,"You can protect yourself and others from COVID-19 by following preventive measures, such as keeping a distance, wearing a mask in crowded and poorly ventilated spaces, practicing hand hygiene, respiratory etiquette (covering your mouth and nose with a bent elbow or a tissue when you cough or sneeze), getting vaccinated and staying up to date with booster doses.",,,WHO,2026-07-22,scraped,Pending
+PSA000022,Health,Check local advice where you live and work.,,,WHO,2026-07-22,scraped,Pending
+PSA000023,Health,Read our public advice page for more information.,,,WHO,2026-07-22,scraped,Pending
+PSA000024,Health,"Anyone with symptoms such as acute onset of fever and cough should be tested, wherever possible, to ensure that they receive appropriate clinical care. People who do not have symptoms but have had close contact with someone who is, or may be, infected may also consider testing. Contact your local health guidelines and follow their guidance. While a person is waiting for test results, they should preferably wear a mask when interacting with others in or outside of their household or sharing space with others. Where testing capacity is limited, tests should first be done for those at higher risk of infection, such as health workers, and those at higher risk of severe illness such as older people, especially those living in seniors’ residences or long-term care facilities. Individuals with signs and symptoms suggestive of COVID-19 or those who test positive for the virus should wear a mask when interacting with others in or outside of one’s household or sharing space with others.",,,WHO,2026-07-22,scraped,Pending
+PSA000025,Health,"Anyone with symptoms such as acute onset of fever and cough should be tested, wherever possible, to ensure that they receive appropriate clinical care. People who do not have symptoms but have had close contact with someone who is, or may be, infected may also consider testing. Contact your local health guidelines and follow their guidance.",,,WHO,2026-07-22,scraped,Pending
+PSA000026,Health,"While a person is waiting for test results, they should preferably wear a mask when interacting with others in or outside of their household or sharing space with others. Where testing capacity is limited, tests should first be done for those at higher risk of infection, such as health workers, and those at higher risk of severe illness such as older people, especially those living in seniors’ residences or long-term care facilities.",,,WHO,2026-07-22,scraped,Pending
+PSA000027,Health,Individuals with signs and symptoms suggestive of COVID-19 or those who test positive for the virus should wear a mask when interacting with others in or outside of one’s household or sharing space with others.,,,WHO,2026-07-22,scraped,Pending
+PSA000028,Health,"There are two main types of tests that can confirm whether you
+are infected with SARS-CoV-2, the virus that causes COVID-19. Molecular tests,
+such as polymerase chain reaction (PCR), are the most accurate tests for
+diagnosing SARS-CoV-2 infection. Molecular tests detect virus in the sample by
+amplifying viral genetic material to detectable levels. Rapid antigen tests
+(sometimes known as rapid diagnostic tests or RDTs) detect viral proteins
+(known as antigens). RDTs are a simpler and faster option than molecular tests
+and are available for testing by trained operators or by the individual
+themselves (sometimes called self-tests). They perform best when there is more
+virus circulating in the community and when sampled from an individual during
+the time they are most infectious, generally within the first 5–7 days
+following symptom onset. Samples for both types of tests are collected from the
+nose and/or throat with a swab. Learn more about what kind of COVID-19 tests are available Why testing for SARS-CoV-2 is important Use of Ag-RDTs What you need to know about self-testing",,,WHO,2026-07-22,scraped,Pending
+PSA000029,Health,"There are two main types of tests that can confirm whether you
+are infected with SARS-CoV-2, the virus that causes COVID-19. Molecular tests,
+such as polymerase chain reaction (PCR), are the most accurate tests for
+diagnosing SARS-CoV-2 infection. Molecular tests detect virus in the sample by
+amplifying viral genetic material to detectable levels. Rapid antigen tests
+(sometimes known as rapid diagnostic tests or RDTs) detect viral proteins
+(known as antigens). RDTs are a simpler and faster option than molecular tests
+and are available for testing by trained operators or by the individual
+themselves (sometimes called self-tests). They perform best when there is more
+virus circulating in the community and when sampled from an individual during
+the time they are most infectious, generally within the first 5–7 days
+following symptom onset. Samples for both types of tests are collected from the
+nose and/or throat with a swab.",,,WHO,2026-07-22,scraped,Pending
+PSA000030,Health,Learn more about what kind of COVID-19 tests are available,,,WHO,2026-07-22,scraped,Pending
+PSA000031,Health,Why testing for SARS-CoV-2 is important,,,WHO,2026-07-22,scraped,Pending
+PSA000032,Health,What you need to know about self-testing,,,WHO,2026-07-22,scraped,Pending
+PSA000033,Health,"Antibody tests can tell us whether someone has had an infection
+in the past, even if they have not had symptoms. Also known as serological
+tests, these tests detect antibodies produced in response to an infection or
+vaccination. In most people, antibodies start to develop after days to weeks
+and can indicate if a person has had past infection or has been vaccinated.
+Antibody tests cannot be used to diagnose SARS-CoV-2 infection in the early
+stages of infection or disease but can indicate whether or not someone has had
+the disease in the past. If you have been vaccinated, many antibody tests are
+not able to distinguish between whether you were previously infected or have
+been vaccinated (or both), so in such situations you will test positive in
+either case.",,,WHO,2026-07-22,scraped,Pending
+PSA000035,Health,"Both isolation and quarantine are methods of preventing the
+spread of COVID-19. Quarantine is used for certain persons who are a contact of someone
+infected with SARS-CoV-2, the virus that causes COVID-19, whether the infected
+person has symptoms or not. Quarantine means that you remain separated from
+others because you have been exposed to the virus and you may be infected and
+can take place in a designated facility or at home. For COVID-19, this means
+staying in the facility or at home for several days. Isolation is used for people with COVID-19 symptoms or who have tested
+positive for the virus. Being in isolation means being separated from other
+people, ideally in a medical facility where you can receive clinical care. If
+isolation in a medical facility is not possible and you are not in a high-risk
+group for developing severe disease, isolation can take place at home. If you
+have symptoms, you should remain in isolation for at least 10 days. If you are
+infected and do not develop symptoms, you should remain in isolation for 5 days
+from the time you test positive. You can be discharged from isolation early if
+you test negative on a rapid antigen test.",,,WHO,2026-07-22,scraped,Pending
+PSA000036,Health,"Both isolation and quarantine are methods of preventing the
+spread of COVID-19.",,,WHO,2026-07-22,scraped,Pending
+PSA000037,Health,"Quarantine is used for certain persons who are a contact of someone
+infected with SARS-CoV-2, the virus that causes COVID-19, whether the infected
+person has symptoms or not. Quarantine means that you remain separated from
+others because you have been exposed to the virus and you may be infected and
+can take place in a designated facility or at home. For COVID-19, this means
+staying in the facility or at home for several days.",,,WHO,2026-07-22,scraped,Pending
+PSA000038,Health,"Isolation is used for people with COVID-19 symptoms or who have tested
+positive for the virus. Being in isolation means being separated from other
+people, ideally in a medical facility where you can receive clinical care. If
+isolation in a medical facility is not possible and you are not in a high-risk
+group for developing severe disease, isolation can take place at home. If you
+have symptoms, you should remain in isolation for at least 10 days. If you are
+infected and do not develop symptoms, you should remain in isolation for 5 days
+from the time you test positive. You can be discharged from isolation early if
+you test negative on a rapid antigen test.",,,WHO,2026-07-22,scraped,Pending
+PSA000039,Health,"If you have been exposed to someone with COVID-19, you may become infected, even if you feel well. After exposure to someone who has COVID-19, do the following: Call your healthcare provider to get tested or test yourself. Stay home if you feel unwell. Wear a mask when interacting with others in or outside of your household or sharing space with others. Clean your hands regularly. Practice respiratory etiquette: cover your mouth and nose with your bent elbow or a tissue when you cough or sneeze. Avoid crowded, enclosed or poorly ventilated spaces. Get vaccinated and stay up to date with booster doses.",,,WHO,2026-07-22,scraped,Pending
+PSA000040,Health,"If you have been exposed to someone with COVID-19, you may become infected, even if you feel well.",,,WHO,2026-07-22,scraped,Pending
+PSA000041,Health,"After exposure to someone who has COVID-19, do the following:",,,WHO,2026-07-22,scraped,Pending
+PSA000042,Health,"The time from exposure to COVID-19 to the moment when symptoms
+begin is, on average, 5–6 days and can range from 1–14 days. This is why people
+who have been exposed to the virus are advised to remain at home and stay away
+from others in order to prevent the spread of the virus.",,,WHO,2026-07-22,scraped,Pending
+PSA000044,Health,"Yes. There are several COVID-19 vaccines validated for use by WHO (given Emergency Use Listing) and from other stringent national regulatory agencies (SRAs). The first mass vaccination programme started in early December 2020 and the number of vaccination doses administered is updated on a regular basis here . For more information on vaccine for COVID-19, see the vaccine questions and answers: Coronavirus disease (COVID-19): Vaccines (who.int)",,,WHO,2026-07-22,scraped,Pending
+PSA000046,Health,"If you are unwell, stay at home. If you have any symptoms suggestive of COVID-19, wear a mask when interacting with others in or outside of your household or sharing space with others. If you have shortness of breath or pain or pressure in the chest, seek medical attention at a health facility immediately. Call your health care provider or hotline in advance for direction to the right health facility. Get tested for COVID-19, regardless of your vaccination status, and especially if you are at high-risk for severe illness and could therefore be eligible for drug treatments. Practice protective and preventive measures. Wear a mask, avoid crowded and poorly ventilated areas, improve ventilation in indoor spaces, keep a distance, practice hand hygiene, and respiratory etiquette (covering your mouth and nose with a bent elbow or a tissue when you cough or sneeze), get vaccinated and stay up to date with booster doses.",,,WHO,2026-07-22,scraped,Pending
+PSA000048,Health,"There has been huge progress in developing treatments for patients with COVID-19. Treatments for COVID-19 should be decided on an individual basis between the person and the healthcare professional looking after them. The choice will depend on the severity of disease and the risk of disease worsening (including the person’s age and whether they have any health problems). WHO maintains a list of recommended treatments, together with the evidence for each, available at https://app.magicapp.org/#/guideline/nBkO1E . These currently include: for non-severe COVID-19: nirmatrelvir-ritonavir; molnupiravir; remdesivir for severe COVID-19: corticosteroids (including dexamethasone); IL-6 receptor blockers (tocilizumab or sarilumab); baricitinib; remdesivir. Apart from these medications, amongst the most commonly and globally used, and important treatments is oxygen for severely ill patients. WHO leads work which aims to improve global capacity and access to oxygen production, distribution and supply to patients. For corticosteroids, further specific information can be found in the Corticosteroids, including dexamethasone questions and answers .",,,WHO,2026-07-22,scraped,Pending
+PSA000049,Health,"There has been huge progress in developing treatments for patients with COVID-19. Treatments for COVID-19 should be decided on an individual basis between the person and the healthcare professional looking after them. The choice will depend on the severity of disease and the risk of disease worsening (including the person’s age and whether they have any health problems). WHO maintains a list of recommended treatments, together with the evidence for each, available at https://app.magicapp.org/#/guideline/nBkO1E .",,,WHO,2026-07-22,scraped,Pending
+PSA000050,Health,"Apart from these medications, amongst the most commonly and globally used, and important treatments is oxygen for severely ill patients. WHO leads work which aims to improve global capacity and access to oxygen production, distribution and supply to patients.",,,WHO,2026-07-22,scraped,Pending
+PSA000051,Health,"For corticosteroids, further specific information can be found in the Corticosteroids, including dexamethasone questions and answers .",,,WHO,2026-07-22,scraped,Pending
+PSA000052,Health,"Antibiotics do not work against viruses; they only work on
+bacterial infections. COVID-19 is caused by a virus, so antibiotics do not
+work. Antibiotics should not be used as a means of prevention or treatment of
+COVID-19. In hospitals, physicians will sometimes use antibiotics to treat
+secondary bacterial infections, which can be a complication of COVID-19 in
+severely ill patients. They should only be used as directed by a physician to
+treat a bacterial infection.",,,WHO,2026-07-22,scraped,Pending
+PSA000053,Health,"Antibiotics do not work against viruses; they only work on
+bacterial infections. COVID-19 is caused by a virus, so antibiotics do not
+work. Antibiotics should not be used as a means of prevention or treatment of
+COVID-19.",,,WHO,2026-07-22,scraped,Pending
+PSA000054,Health,"In hospitals, physicians will sometimes use antibiotics to treat
+secondary bacterial infections, which can be a complication of COVID-19 in
+severely ill patients. They should only be used as directed by a physician to
+treat a bacterial infection.",,,WHO,2026-07-22,scraped,Pending
+PSA000055,Health,COVID-19 hub Advice for the public All COVID-19 Q&As WHO Information Network on Epidemics (EPI-WIN) Science in 5 series : WHO experts explain the science related to COVID-19,,,WHO,2026-07-22,scraped,Pending
+PSA000056,Health,WHO Information Network on Epidemics (EPI-WIN),,,WHO,2026-07-22,scraped,Pending
+PSA000057,Health,Science in 5 series : WHO experts explain the science related to COVID-19,,,WHO,2026-07-22,scraped,Pending
+PSA000058,Health,Chagas disease (also known as American trypanosomiasis),,,WHO,2026-07-22,scraped,Pending
+PSA000059,Health,Corporal punishment of children and health,,,WHO,2026-07-22,scraped,Pending
+PSA000060,Health,Middle East respiratory syndrome coronavirus (MERS-CoV),,,WHO,2026-07-22,scraped,Pending
+PSA000061,Health,Older children and young adolescent mortality (5 to 14 years),,,WHO,2026-07-22,scraped,Pending
+PSA000062,Health,The top 10 causes of death,,,WHO,2026-07-22,scraped,Pending
+PSA000063,Education,REPORT  CORRUPTION IN THE PLACEMENT OF GRADE 10 LEARNERS IN SENIOR SCHOOL,,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000064,Education,"Cabinet Secretary Julius Migos Ogamba commissions new classrooms at Uthiru Comprehensive School and Rukubi Comprehensive School in Kabete Sub-County, Kiambu County.",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000065,Education,"Education CS Julius Ogamba flanked by (left to right) Dr. Esther Mworia, PS Technical and Vocational Education Training (TVET), Dr. Beatrice Inyangala, PS Higher Education and Prof. (Amb.) Julius Bitok, PS Basic Education.",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000066,Education,PS TVET DR. ESTHER MUORIA WELCOMING THE PRIME CABINET SECRETARY HON. DR MUSALIA MUDAVADI TO TVET@100 CELEBRATIONS HELD AT KABETE NATIONAL POLYTECHNIC,,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000067,Education,PS Prof. Julius Bitok Commissions Classrooms at Kwa Njenga Primary,,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000068,Education,CS Julius Ogamba signs Education MOU with his Denmark counterpart Christina Egelund,,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000069,Education,"President Dr. William Ruto, Deputy President Prof. Kithure Kindiki, Education CS Julius Ogamba visit a school February 27th 2025",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000070,Education,"PS TVET, DR. ESTHER MUORIA WELCOMING CS EDUCATION, HON. JULIUS OGAMBO TO THE WORLDSKILLS COMPETITION HELD AT KSTVET",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000071,Education,"Mbauro Comprehensive School Wundanyi, Taita Taveta County",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000072,Education,"The Cabinet Secretary for Education Julius Migos Ogamba during the posting report of the 2,000 TVET trainers.",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000073,Education,CS  Hon. Julius Ogambo and PS higher education and PS  TVET lead bilateral talks with the British high commission led by Desmond Neil.,,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000074,Education,"The newly appointed Cabinet Secretary for Education Mr Julius Migosi Agambo meets the  Principal Secretary for the State Department of Basic Education, Dr. Belio Kipsang, and his counterpart in the State Department of Technical, Vocational Education and Training, Dr. Esther Mouria in his office at Jogoo House.",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000075,Education,"The Ministry of Education (MOE) formulates and implements education and training policies, standards, curricula, examinations and the granting of university charters. It is also responsible for the management of universities, tertiary educational institutions and other institutions of research and higher learning and primary schools, special education, secondary schools and special education institutions.",,,Ministry of Education,2026-07-22,scraped,Pending
+PSA000076,Education,"The Ministry derives its mandate from the Constitution of Kenya, the Statutes on education, and the Executive Order No. 1 of 2020 (Revised) on the Organization of the Government of the Republic of Kenya.....",,,Ministry of Education,2026-07-22,scraped,Pending
