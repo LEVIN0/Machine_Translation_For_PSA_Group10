@@ -1,0 +1,30 @@
+{
+  "built_at": "2026-07-22T16:46:37+00:00",
+  "mode": "reclean (no rescrape)",
+  "cleaning": {
+    "input": 13033,
+    "after_empty": 13033,
+    "after_fragments": 12713,
+    "after_length": 12708,
+    "after_dedupe": 12705,
+    "after_lang": 12705,
+    "output": 12705,
+    "removed_total": 328
+  },
+  "rows_total": 12705,
+  "rows_per_source": {
+    "WHO": 4832,
+    "TICO-19 (Translation Initiative for COVID-19)": 3004,
+    "Infonet-Biovision (Biovision Africa Trust)": 2409,
+    "Kenya Revenue Authority": 999,
+    "Amref Health Africa": 416,
+    "Kenya Red Cross": 403,
+    "Ethics and Anti-Corruption Commission": 335,
+    "National Environment Management Authority": 241,
+    "Kenya Meteorological Department": 28,
+    "Ministry of Education": 15,
+    "Kenya Institute of Curriculum Development": 13,
+    "Communications Authority of Kenya": 8,
+    "eCitizen Kenya": 2
+  }
+}
