@@ -20,7 +20,7 @@ few-shot cross-lingual transfer learning on our curated PSA dataset.
 
 | Week | Focus | Status |
 |------|-------|--------|
-| 1 | Data collection & curation | ✅ Complete — 13,033 rows, 13 sources |
+| 1 | Data collection & curation | ✅ Complete - 12,705 rows, 13 sources |
 | 2 | Preprocessing & EDA | ⬜ |
 | 3 | Modeling with transfer learning (mT5 / NLLB / mBART) | ⬜ |
 | 4 | Evaluation, deployment & documentation | ⬜ |
