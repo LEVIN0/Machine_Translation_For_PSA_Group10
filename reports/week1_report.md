@@ -11,7 +11,7 @@
 
 This week we built the data foundation for the project: a parallel dataset of Public
 Service Announcements (PSAs) in English and Kiswahili, with a placeholder column for
-Ekegusii, our second target language. By the end of the week we had **13,033 cleaned
+Ekegusii, our second target language. By the end of the week we had **12,705 cleaned
 rows** from **13 distinct sources**, collected through a mix of automated web scraping
 and existing parallel corpora, which is well above the 5,000-sentence target.
 
@@ -66,17 +66,17 @@ scraping source — see Challenges.
 ## 4. Dataset summary
 
 **File:** `data/processed/psa_parallel_week1.csv`
-**Total rows after cleaning:** 13,033
+**Total rows after cleaning:** 12,705
 
 ### Rows per domain
 
 | Domain | Rows | Share |
 |--------|------|-------|
-| Health | 8,904 | 68.3% |
-| Agriculture | 2,418 | 18.5% |
-| Governance | 1,395 | 10.7% |
-| Security | 285 | 2.2% |
-| Education | 31 | 0.2% |
+| Health | 8,655 | 68.1% |
+| Agriculture | 2,409 | 19.0% |
+| Governance | 1,336 | 10.5% |
+| Security | 277 | 2.2% |
+| Education | 28 | 0.2% |
 
 ### Schema
 
@@ -102,6 +102,7 @@ scraping source — see Challenges.
 | After length filter (4–80 words) | 13,268 |
 | After deduplication (exact + near-duplicates) | 13,116 |
 | After language detection (langdetect on EN and SW columns) | 13,033 |
+| After fragment/bullet pass (re-clean, see challenges f–g) | 12,705 |
 
 ### Sample entries
 
@@ -203,8 +204,8 @@ the cleaning step re-runnable without re-scraping (`scripts/reclean.py`).
 seed so our cleaning results are reproducible.
 
 **i) Domain imbalance.**
-Despite 17 sources, Education (~31 rows) and Security (~285 rows) are far behind
-Health (~8,900). These sub-topics mostly don't exist as scrapeable English web text in
+Despite 17 sources, Education (28 rows) and Security (277 rows) are far behind
+Health (~8,700). These sub-topics mostly don't exist as scrapeable English web text in
 Kenya, which is why we plan team-written PSAs for them.
 
 ## 7. Team roles and ethical scraping review
