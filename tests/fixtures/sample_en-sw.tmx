@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tmx SYSTEM "tmx14.dtd">
+<tmx version="1.4">
+  <header creationtool="fixture" creationtoolversion="1.0" segtype="sentence"
+          o-tmf="fixture" adminlang="en" srclang="en" datatype="PlainText"/>
+  <body>
+    <tu tuid="1">
+      <tuv xml:lang="en">
+        <seg>Wash your hands with soap and clean water regularly.</seg>
+      </tuv>
+      <tuv xml:lang="sw">
+        <seg>Osha mikono yako kwa sabuni na maji safi mara kwa mara.</seg>
+      </tuv>
+    </tu>
+    <tu tuid="2">
+      <tuv xml:lang="en">
+        <seg>Seek medical care immediately if you develop a high fever.</seg>
+      </tuv>
+      <tuv xml:lang="sw">
+        <seg>Tafuta huduma ya matibabu mara moja ukipata homa kali.</seg>
+      </tuv>
+    </tu>
+    <tu tuid="3">
+      <tuv xml:lang="en">
+        <seg>This translation unit has no Kiswahili variant and must be skipped.</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>
