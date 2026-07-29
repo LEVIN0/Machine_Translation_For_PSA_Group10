@@ -9,8 +9,9 @@
 
 ## 1. Overview
 
-This week we took the Week 1 dataset (12,705 rows, 13 sources) through a full
-preprocessing and EDA pass. We built a reusable preprocessing pipeline
+This week we took the Week 1 dataset — since expanded to 13,519 rows from 18
+sources through topic-expansion scraping and 150 team-written PSA pairs —
+through a full preprocessing and EDA pass. We built a reusable preprocessing pipeline
 (tokenization, normalization, code-switching detection, cultural-term glossary),
 produced the EDA report with six figures, created leakage-safe train/dev/test
 splits for Week 3, and prepared the 500-row native-speaker validation subset.
@@ -28,11 +29,11 @@ All code is in the repo and rerunnable end-to-end with one command
   tokenization here — SentencePiece/BPE belongs to Week 3 with the model
   tokenizers.
 - Code-switching detection: a stopword-ratio heuristic flags sentences that mix
-  English and Kiswahili. Only 1 row in 12,705 was flagged, so code-switching is
+  English and Kiswahili. Only 1 row in 13,519 was flagged, so code-switching is
   not a major issue in our data (it is mostly clean monolingual text).
 - Cultural glossary (`data/glossary.json`): 24 Kenyan institutional/cultural
   terms (harambee, nyumba kumi, matatu, M-Pesa, boda boda, SHA, KCSE…) with
-  Kiswahili equivalents and notes. 52 rows contain at least one glossary term —
+  Kiswahili equivalents and notes. 83 rows contain at least one glossary term —
   these get consistent terminology treatment in Week 3.
 - Output: `data/processed/psa_preprocessed.csv` with per-row token counts,
   code-switch flags and glossary tags. Original columns untouched.
@@ -45,7 +46,7 @@ auto-generated observations.
 
 **Splits** (`SRC/splits.py`, output in `data/processed/splits/`)
 
-Train/dev/test at 90/5/5 (11,435 / 635 / 635 rows), stratified by domain, seeded
+Train/dev/test at 90/5/5 (12,167 / 676 / 676 rows), stratified by domain, seeded
 (seed=42) for reproducibility. Crucially, rows are grouped by normalized text
 before splitting so duplicates and near-duplicates cannot leak across splits —
 we verified zero overlap. Leaky splits would have made our Week 4 BLEU scores
@@ -61,31 +62,35 @@ is in progress — each member reviews ~165 rows against the guide.
 
 | Measure | Value |
 |---|---|
-| Total rows | 12,705 |
-| Paired EN–SW rows | 2,987 (23.5%) |
-| English-only rows | 9,718 (76.5%) |
+| Total rows | 13,519 |
+| Paired EN–SW rows | 3,137 (23.2%) |
+| English-only rows | 10,382 (76.8%) |
 | Ekegusii rows | 0 (placeholder until Week 3 few-shot) |
-| Vocabulary EN / SW | 15,737 / 8,307 types |
-| Mean length EN / SW | 19.3 / 23.8 words |
+| Vocabulary EN / SW | 16,368 / 8,677 types |
+| Mean length EN / SW | 19.3 / 23.5 words |
 | Code-switched rows | 1 |
 
-**Domain distribution:** Health 8,655 (68.1%), Agriculture 2,409 (19.0%),
-Governance 1,336 (10.5%), Security 277 (2.2%), Education 28 (0.2%).
+**Domain distribution:** Health 8,655 (64.0%), Agriculture 2,409 (17.8%),
+Governance 1,386 (10.3%), Security 654 (4.8%), Education 415 (3.1%).
 
 ## 4. What the EDA told us (and what we decided)
 
-1. **Only 23.5% of rows are actually parallel.** Our supervised training signal
-   is ~3k EN–SW pairs, mostly TICO-19. Plan: import Tatoeba EN–SW pairs now, have
-   the team write Kiswahili versions of their team-written PSAs, and use
+1. **Only 23.2% of rows are actually parallel.** Our supervised training signal
+   is 3,137 EN–SW pairs (TICO-19 plus the 150 team-written pairs we added after
+   the first EDA pass). Plan: import Tatoeba EN–SW pairs and use
    back-translation (NLLB-200) in Week 3 to create synthetic pairs from vetted
    English-only rows — a standard low-resource augmentation technique.
-2. **Health dominates (68.1%).** We are keeping the full dataset (the data is
-   good), but Week 3 training will use a balanced "training view" — downsampling
-   Health within the training split only, or domain-balanced sampling.
-3. **Education and Security remain thin** (28 and 277 rows). These sub-topics
-   barely exist as scrapeable English web text in Kenya, so we are covering them
-   with team-written PSAs (kit in `docs/team_written_psa_kit.md`, 25 sub-topics).
-4. **Kiswahili runs ~23% longer than English** (23.8 vs 19.3 mean words) —
+2. **Health dominates (64.0%).** This is down from 68.1% at the end of Week 1
+   thanks to the topic expansion, but still high. We are keeping the full
+   dataset (the data is good), but Week 3 training will use a balanced
+   "training view" — downsampling Health within the training split only, or
+   domain-balanced sampling.
+3. **Education and Security were the thinnest domains** (28 and 277 rows at the
+   end of Week 1) — these sub-topics barely exist as scrapeable English web
+   text in Kenya. We closed most of that gap with new scraping sources (DCI,
+   COVAW, NACADA, KUCCPS, a reworked Ministry of Education config) plus 150
+   team-written EN–SW PSA pairs, bringing them to 654 and 415 rows.
+4. **Kiswahili runs ~22% longer than English** (23.5 vs 19.3 mean words) —
    normal translation expansion, but it matters for the Week 3 subword budget
    and max-sequence-length settings.
 5. **A handful of very short rows (min 1 token)** survive despite the 4-word
@@ -95,7 +100,7 @@ Governance 1,336 (10.5%), Security 277 (2.2%), Education 28 (0.2%).
 
 ## 5. Issues handled this week
 
-- **Missing translations:** quantified (76.5%) rather than assumed; mitigation
+- **Missing translations:** quantified (76.8%) rather than assumed; mitigation
   plan above (Tatoeba + team-written + back-translation).
 - **Orthographic variation:** handled by deep normalization (quotes, dashes,
   Unicode) so the same word doesn't appear as multiple vocabulary types.
@@ -111,7 +116,7 @@ Governance 1,336 (10.5%), Security 277 (2.2%), Education 28 (0.2%).
 ## 6. Challenges
 
 - The biggest surprise was how little of our "parallel dataset" is actually
-  parallel — 76.5% is English-only. Week 1 optimized for volume and quality;
+  parallel — 76.8% is English-only. Week 1 optimized for volume and quality;
   Week 2 made clear that Week 3's real constraint is *paired* volume.
 - Writing a code-switch detector that works without a trained model is harder
   than it sounds; our stopword heuristic is simple but only flagged 1 row, which
