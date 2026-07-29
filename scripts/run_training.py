@@ -29,7 +29,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    choices=["en-sw", "sw-en", "en-guz", "sw-guz", "both", "all"],
                    help="translation direction(s) to train on")
     p.add_argument("--fewshot-guz", type=int, default=0,
-                   help="N seed pairs from FLORES guz_dev.tsv (0 = none)")
+                   help="cap on PSA-sourced Ekegusii train pairs "
+                        "(0 = none, -1 = all)")
     p.add_argument("--freeze-encoder", action="store_true",
                    help="freeze the encoder stack (low-resource technique)")
     p.add_argument("--freeze-embed", action="store_true",
@@ -49,8 +50,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="quick run: caps max_samples=2000, epochs=2")
     p.add_argument("--splits-dir", default="data/processed/splits",
                    help="directory with {train,dev,test}.csv")
-    p.add_argument("--flores-dir", default="data/external/flores200",
-                   help="directory with guz_dev.tsv / guz_devtest.tsv")
     p.add_argument("--augmented-csv", default=None,
                    help="CSV of back-translated pairs (default: "
                         "data/processed/augmented.csv when --use-augmentation)")
@@ -95,7 +94,7 @@ def main(argv: list[str] | None = None) -> Path:
     from training.trainer import train  # lazy: pulls torch/transformers
 
     best = train(cfg, splits_dir=Path(args.splits_dir),
-                 flores_dir=Path(args.flores_dir), augmented_csv=augmented_csv)
+                 augmented_csv=augmented_csv)
     print(f"[run_training] checkpoint-best: {best}")
     return best
 

@@ -18,7 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-FLORES_FIXTURE = FIXTURES / "flores"
+BENCH_FIXTURE = FIXTURES / "guz_benchmark"
 SPLITS_FIXTURE = FIXTURES / "week3" / "splits"
 
 _SKIPPED: list[str] = []
@@ -93,30 +93,24 @@ def test_load_psa_pairs():
 
 
 # ---------------------------------------------------------------------------
-# 3. load_flores_seed: n-slicing + determinism + sw-guz skip
+# 3. load_guz_benchmark: n-slicing + determinism (eval-only benchmark)
 # ---------------------------------------------------------------------------
 
-def test_load_flores_seed():
-    from training.data import load_flores_seed
-    ds = load_flores_seed(FLORES_FIXTURE, 3)
-    assert len(ds) == 3, f"expected exactly n=3 seed rows, got {len(ds)}"
-    assert set(ds["src_lang"]) == {"eng"} and set(ds["tgt_lang"]) == {"guz"}
-    assert set(ds["provenance"]) == {"flores_dev_seed"}
+def test_load_guz_benchmark():
+    from training.data import load_guz_benchmark
+    ds = load_guz_benchmark(BENCH_FIXTURE, 3)
+    assert len(ds) == 3, f"expected exactly n=3 benchmark rows, got {len(ds)}"
+    assert ds.column_names == ["eng", "guz"], ds.column_names
 
     # determinism: same seed -> same pairs; n capped by fixture size (8)
-    again = load_flores_seed(FLORES_FIXTURE, 3)
-    assert ds["src_text"] == again["src_text"] and ds["tgt_text"] == again["tgt_text"]
-    full = load_flores_seed(FLORES_FIXTURE, 100)
-    assert len(full) == 8, f"fixture has 8 dev pairs, got {len(full)}"
-
-    # fixture has no swa column -> sw-guz rows skipped with a warning, no crash
-    import warnings
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        sw_ds = load_flores_seed(FLORES_FIXTURE, 4, directions=["sw-guz"])
-    assert len(sw_ds) == 0
-    assert any("swa" in str(w.message) for w in caught)
-    print("ok  test_load_flores_seed")
+    again = load_guz_benchmark(BENCH_FIXTURE, 3)
+    assert ds["eng"] == again["eng"] and ds["guz"] == again["guz"]
+    full = load_guz_benchmark(BENCH_FIXTURE, 100)
+    assert len(full) == 8, f"fixture has 8 benchmark pairs, got {len(full)}"
+    # n=None -> all rows, in file order
+    ordered = load_guz_benchmark(BENCH_FIXTURE, None)
+    assert ordered["eng"][0] == "Wash your hands with soap and clean water."
+    print("ok  test_load_guz_benchmark")
 
 
 # ---------------------------------------------------------------------------
@@ -129,52 +123,48 @@ def test_build_train_dataset():
     base = dict(run_name="t", model_key="mt5_small")
 
     cfg = TrainConfig(direction="both", **base)
-    ds = build_train_dataset(cfg, SPLITS_FIXTURE, FLORES_FIXTURE)
+    ds = build_train_dataset(cfg, SPLITS_FIXTURE)
     assert len(ds) == 12, f"both directions -> 12 psa pairs, got {len(ds)}"
     assert set(ds["provenance"]) == {"psa"}
 
-    cfg = TrainConfig(direction="all", fewshot_guz=4, **base)
-    ds = build_train_dataset(cfg, SPLITS_FIXTURE, FLORES_FIXTURE)
-    # 12 psa pairs + 4 en-guz seeds (fixture has no swa column -> no sw-guz)
-    assert len(ds) == 16, f"expected 16 pairs, got {len(ds)}"
-    prov = set(ds["provenance"])
-    assert prov == {"psa", "flores_dev_seed"}, prov
-    guz = [r for r in ds if r["tgt_lang"] == "guz"]
-    assert len(guz) == 4
-
     cfg = TrainConfig(direction="both", max_samples=5, **base)
-    ds = build_train_dataset(cfg, SPLITS_FIXTURE, FLORES_FIXTURE)
+    ds = build_train_dataset(cfg, SPLITS_FIXTURE)
     assert len(ds) == 5, f"max_samples cap must apply, got {len(ds)}"
     # cap is deterministic (seeded shuffle before select)
-    ds2 = build_train_dataset(cfg, SPLITS_FIXTURE, FLORES_FIXTURE)
+    ds2 = build_train_dataset(cfg, SPLITS_FIXTURE)
     assert ds["src_text"] == ds2["src_text"]
     print("ok  test_build_train_dataset")
 
 
 # ---------------------------------------------------------------------------
-# 5. devtest guard: raise when only devtest exists and fewshot_guz > 0
+# 5. build_guz_benchmark script: writes guz_test.tsv from a test split
 # ---------------------------------------------------------------------------
 
-def test_devtest_guard():
-    from training.config import TrainConfig
-    from training.data import build_train_dataset, load_flores_seed
-    with tempfile.TemporaryDirectory(prefix="flores_guard_") as tmp:
-        bad_dir = Path(tmp)
-        # devtest present, dev ABSENT -> training must refuse to proceed
-        (bad_dir / "guz_devtest.tsv").write_text(
-            (FLORES_FIXTURE / "guz_devtest.tsv").read_text(encoding="utf-8"),
+def test_build_guz_benchmark_script():
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+    import build_guz_benchmark as bgb
+
+    with tempfile.TemporaryDirectory(prefix="guz_bench_") as tmp:
+        tmp = Path(tmp)
+        splits = tmp / "splits"
+        splits.mkdir()
+        # minimal split fixture: 2 guz rows + 1 non-guz row (excluded)
+        (splits / "test.csv").write_text(
+            "PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status\n"
+            'P1,Health,Boil water.,Chemsha maji.,Tancha amache.,X,,,,Validated\n'
+            'P2,Security,Lock the door.,Funga mlango.,,X,,,,Validated\n'
+            'P3,Education,Go to school.,Nenda shuleni.,Karia esomero.,X,,,,Validated\n',
             encoding="utf-8")
-        cfg = TrainConfig(run_name="t", model_key="mt5_small",
-                          direction="all", fewshot_guz=10)
-        for fn in (lambda: build_train_dataset(cfg, SPLITS_FIXTURE, bad_dir),
-                   lambda: load_flores_seed(bad_dir, 10)):
-            try:
-                fn()
-            except FileNotFoundError as exc:
-                assert "devtest" in str(exc).lower() or "guz_dev" in str(exc)
-            else:
-                raise AssertionError("devtest guard must raise FileNotFoundError")
-    print("ok  test_devtest_guard")
+        out = tmp / "out"
+        assert bgb.main(splits_dir=splits, out_dir=out) == 0
+        tsv = (out / "guz_test.tsv").read_text(encoding="utf-8").splitlines()
+        assert tsv[0] == "eng\tguz"
+        assert len(tsv) == 3, f"header + 2 guz pairs expected, got {len(tsv)}"
+        assert "Boil water.\tTancha amache." in tsv
+
+        # missing test.csv -> exit code 1
+        assert bgb.main(splits_dir=tmp / "nope", out_dir=out) == 1
+    print("ok  test_build_guz_benchmark_script")
 
 
 # ---------------------------------------------------------------------------
@@ -193,14 +183,15 @@ def test_augment_import_no_torch():
 
 
 # ---------------------------------------------------------------------------
-# 7. scripts/fetch_flores.py compiles
+# 7. scripts/build_guz_benchmark.py + training/lang_tokens.py compile
 # ---------------------------------------------------------------------------
 
-def test_fetch_flores_compiles():
-    script = PROJECT_ROOT / "scripts" / "fetch_flores.py"
-    assert script.exists(), f"missing {script}"
-    py_compile.compile(str(script), doraise=True)
-    print("ok  test_fetch_flores_compiles")
+def test_new_modules_compile():
+    for path in (PROJECT_ROOT / "scripts" / "build_guz_benchmark.py",
+                 PROJECT_ROOT / "training" / "lang_tokens.py"):
+        assert path.exists(), f"missing {path}"
+        py_compile.compile(str(path), doraise=True)
+    print("ok  test_new_modules_compile")
 
 
 # ---------------------------------------------------------------------------
@@ -214,16 +205,16 @@ def run() -> int:
     test_direction_expansion()
     if have_datasets:
         test_load_psa_pairs()
-        test_load_flores_seed()
+        test_load_guz_benchmark()
         test_build_train_dataset()
-        test_devtest_guard()
     else:
-        for name in ("test_load_psa_pairs", "test_load_flores_seed",
-                     "test_build_train_dataset", "test_devtest_guard"):
+        for name in ("test_load_psa_pairs", "test_load_guz_benchmark",
+                     "test_build_train_dataset"):
             _skip(name, "python package 'datasets' not installed "
                         "(pip install datasets)")
+    test_build_guz_benchmark_script()
     test_augment_import_no_torch()
-    test_fetch_flores_compiles()
+    test_new_modules_compile()
 
     if _SKIPPED:
         print(f"note: {len(_SKIPPED)} test(s) skipped gracefully:")

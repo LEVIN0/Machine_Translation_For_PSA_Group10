@@ -44,9 +44,10 @@ class TrainConfig:
     model_key: str
     direction: str = "both"     # "en-sw"|"sw-en"|"en-guz"|"sw-guz"|"both"|"all"
     fewshot_guz: int = 0        # guz pairs: 0=exclude, N=seeded cap on
-                                # PSA-sourced (Ekegusii) pairs, -1=all; FLORES
-                                # guz_dev.tsv is an OPTIONAL extra seed (only
-                                # when >0 and the file is present)
+                                # PSA-sourced (Ekegusii) pairs, -1=all.
+                                # (FLORES-200 was evaluated and dropped: it
+                                # has no Ekegusii — the PSA train split is
+                                # the only guz source.)
     use_augmentation: bool = False
     freeze_encoder: bool = False
     freeze_embed: bool = False

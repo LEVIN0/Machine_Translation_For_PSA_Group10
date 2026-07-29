@@ -5,8 +5,11 @@ Repo layout this spec ADDS to the existing project (existing Week 1/2 code is
 untouched except `tests/test_smoke.py` wiring, done by the main agent at merge).
 
 Decisions (locked with the team): training on **Google Colab free GPU**,
-tracking via **Weights & Biases**, Ekegusii few-shot seed from **FLORES-200
-`guz_Latn` dev split** (devtest stays evaluation-only — project rule).
+tracking via **Weights & Biases**. Ekegusii data: **PSA gold pairs only** —
+the FLORES-200 seed/benchmark plan was dropped after verification (§8):
+FLORES-200 contains no `guz_Latn` and NLLB-200 has no `guz_Latn` token.
+The Ekegusii benchmark is our own held-out test split (evaluation-only —
+project rule).
 
 ## 1. New files and ownership
 
@@ -14,10 +17,11 @@ tracking via **Weights & Biases**, Ekegusii few-shot seed from **FLORES-200
 |---|---|---|
 | `training/__init__.py` | A | package marker, exports version |
 | `training/config.py` | A | ModelConfig / TrainConfig dataclasses, MODEL_ZOO, LANGS |
-| `training/data.py` | A | splits → paired HF datasets; FLORES seed/eval loading |
+| `training/data.py` | A | splits → paired HF datasets; guz benchmark loading |
 | `training/augment.py` | A | back-translation: EN-only rows → synthetic EN–SW pairs |
-| `scripts/fetch_flores.py` | A | download FLORES-200, emit canonical TSVs |
-| `tests/fixtures/flores/guz_dev.tsv`, `guz_devtest.tsv` | A | tiny fixtures (8 / 4 lines) |
+| `training/lang_tokens.py` | main | NLLB unseen-language extension (adds `guz_Latn`, donor-init from `swh_Latn`) |
+| `scripts/build_guz_benchmark.py` | main | build `guz_test.tsv` from the held-out test split |
+| `tests/fixtures/guz_benchmark/guz_test.tsv` | A | tiny benchmark fixture (8 lines) |
 | `tests/test_week3_data.py` | A | offline tests for config/data/augment |
 | `training/utils.py` | B | seeding, device info, run dirs, timing, JSON IO |
 | `training/trainer.py` | B | `train()` — HF Seq2SeqTrainer wiring, freezing, W&B, checkpoints |
@@ -61,7 +65,7 @@ class TrainConfig:
     run_name: str
     model_key: str
     direction: str = "both"     # "en-sw"|"sw-en"|"en-guz"|"sw-guz"|"both"|"all"
-    fewshot_guz: int = 0        # N seed pairs from FLORES guz_dev.tsv (0 = none)
+    fewshot_guz: int = 0        # cap on PSA-sourced guz train pairs (0 = none, -1 = all)
     use_augmentation: bool = False
     freeze_encoder: bool = False
     freeze_embed: bool = False
@@ -85,35 +89,29 @@ Direction expansion (single place, in `data.py`): `"both"` -> `["en-sw","sw-en"]
 Canonical example columns (HF `datasets.Dataset`): 
 `src_text:str, tgt_text:str, src_lang:str, tgt_lang:str, domain:str, provenance:str`
 (`src_lang`/`tgt_lang` in {"eng","swa","guz"}; provenance in
-{"psa","flores_dev_seed","backtranslation"}).
+{"psa","backtranslation"}).
 ```python
 def load_psa_pairs(splits_dir: Path, split: str, directions: list[str]) -> Dataset
     # reads data/processed/splits/{split}.csv; keeps rows with Kiswahili != "";
     # "en-sw" row + (if requested) "sw-en" row per pair; domain carried; provenance="psa"
-def load_flores_seed(flores_dir: Path, n: int, seed: int = 42,
-                     directions: list[str] = ["en-guz","sw-guz"]) -> Dataset
-    # reads guz_dev.tsv (cols: eng<TAB>guz); shuffles with seed; takes FIRST n;
-    # emits en-guz rows and sw-guz rows ONLY if a sw column exists (fixture has none
-    # -> sw-guz rows are skipped with a warning, do not crash). provenance="flores_dev_seed"
-def load_flores_eval(flores_dir: Path, n: int | None = 200, seed: int = 42) -> Dataset
-    # reads guz_devtest.tsv ONLY (never dev); deterministic seeded sample of n;
-    # columns: eng, guz (raw texts) -> normalized to src/tgt by evaluate.py
-def build_train_dataset(cfg: TrainConfig, splits_dir: Path, flores_dir: Path,
+def load_guz_benchmark(benchmark_dir: Path, n: int | None = 200, seed: int = 42) -> Dataset
+    # reads guz_test.tsv ONLY (evaluation-only, never train); deterministic
+    # seeded sample of n; columns: eng, guz (raw texts) -> normalized to
+    # src/tgt by evaluate.py
+def build_train_dataset(cfg: TrainConfig, splits_dir: Path,
                         augmented_csv: Path | None = None) -> Dataset
-    # psa pairs (train split) + optional flores seed (if cfg.fewshot_guz>0)
+    # psa pairs (train split) + PSA-sourced guz pairs gated by cfg.fewshot_guz
     # + optional augmented_csv rows (provenance="backtranslation");
     # applies cfg.max_samples cap AFTER concatenation with seeded shuffle;
-    # HARD ASSERT: no guz_devtest row can appear (guard: raise if flores_dir has
-    # only devtest and fewshot_guz>0)
+    # HARD ASSERT: raise if fewshot_guz>0 but the train split has no Ekegusii
+    # (the guz benchmark is built from the test split — never trainable)
 ```
 TSV canonical format: header `eng\tguz`, UTF-8, one sentence pair per line.
-`scripts/fetch_flores.py` downloads
-`https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz`, extracts ONLY
-`dev/eng_Latn.dev`, `dev/guz_Latn.dev`, `devtest/eng_Latn.devtest`,
-`devtest/guz_Latn.devtest`, and writes `data/external/flores200/guz_dev.tsv`
-and `guz_devtest.tsv` (joined line-by-line; assert equal line counts: dev 997,
-devtest 1012). Prints SHA256 + counts. Network failure -> clear error message,
-exit 1.
+`scripts/build_guz_benchmark.py` reads `data/processed/splits/test.csv`,
+keeps rows with non-empty English AND Ekegusii, and writes
+`data/external/guz_benchmark/guz_test.tsv` (138 pairs on the remediated
+dataset). Prints the pair count; missing split or zero pairs -> clear error,
+exit 1. The output is EVALUATION-ONLY.
 
 ### 2.3 `training/augment.py`
 ```python
@@ -140,7 +138,6 @@ class Timer:  # context manager, .seconds float
 ### 2.5 `training/trainer.py`
 ```python
 def train(cfg: TrainConfig, splits_dir: Path = Path("data/processed/splits"),
-          flores_dir: Path = Path("data/external/flores200"),
           augmented_csv: Path | None = None) -> Path
 ```
 Behaviour:
@@ -173,8 +170,8 @@ EVAL_SPECS = {  # name -> (loader, src, tgt)
   "psa_dev_sw-en":  ("psa", "dev",  "eng", "swa"),   # reversed at load
   "psa_test_en-sw": ("psa", "test", "eng", "swa"),
   "psa_test_sw-en": ("psa", "test", "eng", "swa"),
-  "flores_en-guz":  ("flores", "devtest", "eng", "guz"),
-  "flores_guz-en":  ("flores", "devtest", "guz", "eng"),
+  "psa_test_en-guz": ("guzbench", "test", "eng", "guz"),
+  "psa_test_guz-en": ("guzbench", "test", "guz", "eng"),
 }
 def evaluate_checkpoint(ckpt: str | Path, eval_spec: str, n: int | None = 200,
                         batch_size: int = 16, seed: int = 42,
@@ -185,7 +182,8 @@ def evaluate_checkpoint(ckpt: str | Path, eval_spec: str, n: int | None = 200,
     # if out_dir: writes <out_dir>/<eval_spec>.json
 ```
 PSA eval reads `data/processed/splits/<split>.csv` (paired rows only).
-FLORES eval reads `guz_devtest.tsv` via `data.load_flores_eval`.
+Guz benchmark eval reads `data/external/guz_benchmark/guz_test.tsv` via
+`data.load_guz_benchmark` (built from the held-out test split).
 
 ### 2.7 `training/inference.py`
 ```python
@@ -218,7 +216,7 @@ Matrix (run_name, model, notes) — `quick=True` caps `max_samples=2000, epochs=
 ```python
 def write_results_table(runs_root: Path, out_md: Path) -> Path
     # scans runs/*/metrics_dev.json + runs/*/evals/*.json -> markdown table
-    # (run, model, config flags, dev BLEU/chrF, flores BLEU/chrF, trainable %,
+    # (run, model, config flags, dev BLEU/chrF, guz BLEU/chrF, trainable %,
     #  seconds) -> reports/week3_results.md ; missing values rendered "—"
 ```
 
@@ -226,7 +224,7 @@ def write_results_table(runs_root: Path, out_md: Path) -> Path
 - `run_training.py --model mt5_small --run-name ft_mt5_base [--direction both]
   [--fewshot-guz 0] [--freeze-encoder] [--use-augmentation] [--epochs 3]
   [--max-samples N] [--report-to none] [--quick]`
-- `run_eval.py --checkpoint runs/x/checkpoint-best [--specs psa_dev_en-sw,flores_en-guz] [--n 200]`
+- `run_eval.py --checkpoint runs/x/checkpoint-best [--specs psa_dev_en-sw,psa_test_en-guz] [--n 200]`
 - `run_ablations.py [--matrix standard|quick] [--only zs_nllb,ft_nllb_base]`
 - `translate.py --checkpoint runs/x/checkpoint-best [--text "..."] [--src eng]
   [--tgt swa] [--demo] [--interactive]` — `--demo` translates DEMO_PSAS into all
@@ -246,7 +244,8 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
 `model_cfg.max_length`, `DataCollatorForSeq2Seq`.
 
 ## 4. Non-negotiables
-- **FLORES devtest never in training** — dev seed only; assert in build_train_dataset.
+- **The guz benchmark (`guz_test.tsv`, from the test split) never in training**
+  — assert in build_train_dataset.
 - Seeded everything (seed=42 default); rerunnable one-command flows.
 - No torch/transformers import at package import time (lazy) — data/config/eval
   metric paths stay usable without GPU stack installed.
@@ -268,7 +267,7 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
 1. GPU check (`torch.cuda.get_device_name`, assert T4-or-better else warning)
 2. `git clone` the team repo + `pip install -r requirements.txt -r requirements-training.txt`
 3. `wandb login` (env var or interactive) — with "skip if you want JSON-only logs" note
-4. `python scripts/fetch_flores.py`
+4. `python scripts/build_guz_benchmark.py`
 5. Zero-shot eval runs (zs_mt5, zs_nllb)
 6. Fine-tune runs (base, freeze, guz50/200) — one cell per run with time print
 7. Optional augmentation cell (back-translate with best EN→SW ckpt, retrain ft_nllb_aug)
@@ -296,10 +295,43 @@ into `psa_parallel_week1.csv`), not from FLORES:
 - `load_psa_pairs` additionally emits `en-guz` / `sw-guz` pairs from split
   rows with non-empty `Ekegusii` (provenance stays `"psa"`; `sw-guz` only
   when Kiswahili is non-empty).
-- The FLORES **dev** seed loader is kept as an OPTIONAL extra: used only
-  when `fewshot_guz > 0` AND `guz_dev.tsv` is present, appended after the
-  PSA-sourced pairs.
-- FLORES **devtest** remains a pure benchmark (EVAL_SPECS unchanged; still
-  never in training — the devtest guard in `build_train_dataset` still
-  raises when guz pairs are requested but none are available from any
-  legitimate source).
+- FLORES **dev** seeding was later dropped entirely (see §8): FLORES-200
+  contains no Ekegusii, so the PSA train split is the only guz source.
+- The Ekegusii benchmark is built from the held-out **test** split
+  (`scripts/build_guz_benchmark.py` → `guz_test.tsv`); still never in
+  training — the guard in `build_train_dataset` raises when guz pairs are
+  requested but the train split has no Ekegusii text.
+
+## 8. Addendum — No Ekegusii in FLORES-200 or NLLB-200 (verified)
+
+While preparing the Week 3 Colab runs we verified both assumptions behind
+the original FLORES plan, and both failed:
+
+1. **FLORES-200 has no Ekegusii.** The published archive
+   (`flores200_dataset.tar.gz`) contains 204 languages; `guz_Latn` is absent
+   (Kenyan languages present: kik, kam, luo; plus som and swh). There is no
+   off-the-shelf Ekegusii benchmark.
+2. **NLLB-200 has no `guz_Latn` token.** The tokenizer's language list has
+   kik/luo/swh but no guz — NLLB-200 has zero Ekegusii pretraining. mT5's
+   pretraining corpus (mC4) does not cover Ekegusii either.
+
+Consequences, now implemented:
+
+- `scripts/fetch_flores.py` was **replaced** by
+  `scripts/build_guz_benchmark.py`, which builds
+  `data/external/guz_benchmark/guz_test.tsv` (138 eng–guz pairs) from our
+  own held-out test split. Eval specs were renamed `flores_*` →
+  `psa_test_en-guz` / `psa_test_guz-en`.
+- The FLORES dev seed loader was **removed** (`load_flores_seed`,
+  `flores_dev_seed` provenance gone); `fewshot_guz` caps PSA-sourced guz
+  train pairs, the only legitimate guz source.
+- `training/lang_tokens.py::ensure_lang_token` adds the missing `guz_Latn`
+  token to NLLB (resize embeddings, donor-initialised from `swh_Latn` — a
+  close Bantu relative) before fine-tuning; MTTranslator does the same at
+  inference time (no-op for fine-tuned checkpoints that already carry it).
+- **NLLB zero-shot Ekegusii is undefined by design** (no unmodified base
+  model can be evaluated on a language its tokenizer lacks); the ablation
+  matrix therefore only runs guz zero-shot evals for mT5.
+- Reporting narrative: both models face a **truly unseen language**; all
+  Ekegusii results come from fine-tuning on the 2,848 real PSA guz pairs
+  (train split), benchmarked on 138 held-out test pairs.

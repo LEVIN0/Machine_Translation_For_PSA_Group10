@@ -49,7 +49,9 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
   leakage): **6,141 / 341 / 341** rows in `data/processed/splits/`.
 - A 500-row native-speaker validation subset is prepared in
   `data/validation/` with guidelines in `docs/validation_guide.md`.
-- FLORES-200 `guz_Latn` devtest is reserved purely as an evaluation benchmark.
+- The Ekegusii benchmark (`data/external/guz_benchmark/guz_test.tsv`, 138
+  eng–guz pairs from the held-out test split) is reserved purely for
+  evaluation. FLORES-200 was evaluated and dropped: it contains no Ekegusii.
 
 ## Repository structure
 
@@ -75,10 +77,10 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │       └── manual.py        # imports team-written PSAs from data/manual/
 ├── training/
 │   ├── config.py            # model zoo (mT5-small, NLLB-200-600M) + TrainConfig
-│   ├── data.py              # splits/FLORES → paired HF datasets (devtest never trains)
+│   ├── data.py              # splits → paired HF datasets (benchmark never trains)
 │   ├── augment.py           # back-translation of English-only rows
 │   ├── trainer.py           # Seq2SeqTrainer wiring: W&B, freezing, best-checkpoint
-│   ├── evaluate.py          # sacreBLEU + chrF on PSA dev/test + FLORES devtest
+│   ├── evaluate.py          # sacreBLEU + chrF on PSA dev/test + guz benchmark
 │   ├── inference.py         # MTTranslator (EN/SW/guz) + demo PSAs
 │   └── ablate.py            # ablation matrix + auto results table
 ├── scripts/
@@ -87,7 +89,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── reclean.py           # re-apply cleaning to the existing CSV (no rescrape)
 │   ├── remediate_dataset.py # framework audit + lecturer gold merge (one command)
 │   ├── run_week2.py         # Week 2 pipeline: preprocess → EDA → splits → validation subset
-│   ├── fetch_flores.py      # download FLORES-200 guz dev (seed) + devtest (eval)
+│   ├── build_guz_benchmark.py # build held-out Ekegusii benchmark from the test split
 │   ├── run_training.py      # Week 3: one training run with a named config
 │   ├── run_ablations.py     # Week 3: run the ablation matrix
 │   ├── run_eval.py          # Week 3: evaluate checkpoint(s)
@@ -95,7 +97,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 ├── notebooks/
 │   └── week3_colab.ipynb    # one-click Colab runbook (GPU check → train → demo)
 ├── tests/
-│   ├── fixtures/            # small TMX + synthetic CSV + FLORES TSV fixtures
+│   ├── fixtures/            # small TMX + synthetic CSV + benchmark TSV fixtures
 │   ├── test_smoke.py        # test suite (run before committing)
 │   └── test_week3_*.py      # Week 3 modules (auto-discovered by test_smoke.py)
 ├── data/
@@ -131,7 +133,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 | Domain | Health / Education / Agriculture / Security / Governance |
 | English | English text (source language) |
 | Kiswahili | Kiswahili translation where available (target language 1) |
-| Ekegusii | Placeholder for Week 3 few-shot transfer (target language 2) |
+| Ekegusii | Ekegusii translation where available (target language 2; 2,848 rows from the lecturer gold dataset) |
 | Source | Publishing organisation |
 | Date | Publication or collection date (ISO) |
 | URL | Page the text was collected from |
@@ -183,7 +185,7 @@ python scripts/reclean.py
 python scripts/run_week2.py
 
 # --- Week 3: training (GPU needed — use notebooks/week3_colab.ipynb on Colab) ---
-python scripts/fetch_flores.py                  # one-time FLORES-200 download
+python scripts/build_guz_benchmark.py           # one-time Ekegusii benchmark build
 python scripts/run_training.py --model nllb_600m --run-name ft_nllb_base
 python scripts/run_ablations.py --matrix quick  # or: standard
 python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
@@ -235,8 +237,11 @@ Outputs:
 > `python scripts/remediate_dataset.py --lecturer data/external/PSA_KE_Final.csv`
 > (see `reports/framework_audit.md` and the Week 1 report addendum).
 
-> **FLORES-200 is NOT used as training data.** It is an evaluation benchmark;
-> training on it would inflate our Week 4 metrics. It is reserved for evaluation.
+> **The Ekegusii benchmark is NOT training data.** `guz_test.tsv` is built
+> from the held-out test split and is evaluation-only; training on it would
+> inflate our Week 4 metrics. (FLORES-200 was considered for this role and
+> dropped — the archive has 204 languages, none of them Ekegusii, and
+> NLLB-200's tokenizer has no `guz_Latn` token. See `docs/SPEC_WEEK3.md` §8.)
 
 ## Adding a new scraping source
 

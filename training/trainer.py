@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 
 from .config import LANGS, MODEL_ZOO, NLLB_CODES, TrainConfig
+from .lang_tokens import ensure_lang_token
 from .utils import Timer, device_info, run_dir, save_json, set_seed
 
 
@@ -141,7 +142,6 @@ def _make_compute_metrics(tokenizer):
 
 def train(cfg: TrainConfig,
           splits_dir: Path = Path("data/processed/splits"),
-          flores_dir: Path = Path("data/external/flores200"),
           augmented_csv: Path | None = None) -> Path:
     """Run one training run; returns Path to run_dir/checkpoint-best (§2.5)."""
     import torch
@@ -153,10 +153,10 @@ def train(cfg: TrainConfig,
 
     cfg = cfg.resolved()
     set_seed(cfg.seed)
-    splits_dir, flores_dir = Path(splits_dir), Path(flores_dir)
+    splits_dir = Path(splits_dir)
     out = run_dir(cfg)
 
-    train_ds = data.build_train_dataset(cfg, splits_dir, flores_dir, augmented_csv)
+    train_ds = data.build_train_dataset(cfg, splits_dir, augmented_csv)
     n_train_pairs = len(train_ds)
     try:
         eval_ds = data.load_psa_pairs(splits_dir, "dev", cfg.directions())
@@ -169,6 +169,13 @@ def train(cfg: TrainConfig,
     model_cfg = MODEL_ZOO[cfg.model_key]
     tokenizer = AutoTokenizer.from_pretrained(model_cfg.hf_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_cfg.hf_name)
+
+    if model_cfg.family == "nllb":
+        # NLLB-200 has no guz_Latn token (Ekegusii unseen) — add it, resize
+        # embeddings, and donor-initialise from swh_Latn before any training.
+        used_langs = set(train_ds["src_lang"]) | set(train_ds["tgt_lang"])
+        for lg in sorted(used_langs):
+            ensure_lang_token(model, tokenizer, NLLB_CODES[lg])
 
     trainable_pct = _apply_freezing(model, cfg)
 

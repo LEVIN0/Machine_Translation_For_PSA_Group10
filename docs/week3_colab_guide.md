@@ -22,8 +22,9 @@ expect, and what to do when things go wrong.
    - Cell 2 clones the repo and `pip install`s `requirements.txt` +
      `requirements-training.txt` (~3–4 min).
    - Cell 3 is wandb login — **skip if you want JSON-only logs**.
-   - Cell 4 downloads FLORES-200 (`guz_dev` for few-shot seeding,
-     `guz_devtest` for evaluation only).
+   - Cell 4 builds the held-out Ekegusii benchmark (`guz_test.tsv`, from our
+     own test split — **evaluation only**). FLORES-200 was evaluated and
+     dropped: it contains no Ekegusii, and NLLB-200 has no `guz_Latn` token.
    - Cell 5 runs the zero-shot baselines (eval-only, ~10–15 min including
      model downloads).
    - Cell 6 group fine-tunes the matrix, **one cell per run with a timer**.
@@ -40,7 +41,7 @@ expect, and what to do when things go wrong.
 | Step | Time |
 |---|---|
 | Setup (clone + pip install) | ~3–4 min |
-| `fetch_flores.py` | ~2–3 min |
+| `build_guz_benchmark.py` | seconds |
 | Zero-shot evals (`zs_mt5` + `zs_nllb`) | ~10–15 min |
 | mt5-small fine-tune (3 epochs, EN↔SW) | ~20–30 min per run |
 | NLLB-600M fine-tune (3 epochs) | ~35–50 min per run |

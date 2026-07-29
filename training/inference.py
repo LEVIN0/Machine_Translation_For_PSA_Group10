@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 from .config import LANGS, MODEL_ZOO, NLLB_CODES
+from .lang_tokens import ensure_lang_token
 
 # 8 original short PSA demo lines (>=1 per domain, mix of eng/swa sources).
 DEMO_PSAS: list[dict] = [
@@ -118,6 +119,21 @@ class MTTranslator:
         return tok(texts, return_tensors="pt", padding=True, truncation=True,
                    max_length=self.model_cfg.max_length)
 
+    def _ensure_nllb_langs(self, src: str, tgt: str) -> None:
+        """Add any missing NLLB language tokens once (guz_Latn is absent from
+        the hub tokenizer; fine-tuned checkpoints already carry it -> no-op).
+        Only meaningful for checkpoints that were fine-tuned with guz pairs —
+        on a base hub model this just enables the mechanics, not competence.
+        """
+        if self.family != "nllb":
+            return
+        ensured = getattr(self, "_ensured_langs", set())
+        for code in (NLLB_CODES[src], NLLB_CODES[tgt]):
+            if code not in ensured:
+                ensure_lang_token(self.model, self.tokenizer, code)
+                ensured.add(code)
+        self._ensured_langs = ensured
+
     def _forced_bos_id(self, tgt: str) -> int | None:
         """forced_bos_token_id for nllb generation; None for mt5."""
         if self.family != "nllb":
@@ -142,6 +158,7 @@ class MTTranslator:
         torch = self._torch
         out: list[str] = []
         batch_size = 16
+        self._ensure_nllb_langs(src, tgt)
         forced_bos = self._forced_bos_id(tgt)
         with torch.no_grad():
             for i in range(0, len(texts), batch_size):

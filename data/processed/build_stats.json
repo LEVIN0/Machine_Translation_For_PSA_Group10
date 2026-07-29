@@ -1,30 +1,17 @@
 {
-  "built_at": "2026-07-29T08:43:17+00:00",
-  "mode": "remediate",
-  "dry_run": false,
-  "dataset": "/tmp/cascade/proj/data/processed/psa_parallel_week1.csv",
-  "lecturer_file": "data/external/PSA_KE_Final.csv",
-  "rows_before": 13519,
-  "rows_after": 6823,
-  "deleted_total": 9548,
-  "deleted_per_source": {
-    "scraped": 9548
+  "built_at": "2026-07-29T03:42:49.736732+00:00",
+  "source_counts": {
+    "manual": 0
   },
-  "class_distribution": {
-    "Informational": 12243,
-    "PSA": 1168,
-    "PressRelease": 93,
-    "Legal": 15
-  },
-  "lecturer_rows": 2895,
   "cleaning": {
-    "input": 6866,
-    "after_empty": 6866,
-    "after_fragments": 6866,
-    "after_length": 6859,
-    "after_dedupe": 6833,
-    "after_lang": 6823,
-    "output": 6823,
-    "removed_total": 43
-  }
+    "input": 0,
+    "after_empty": 0,
+    "after_fragments": 0,
+    "after_length": 0,
+    "after_dedupe": 0,
+    "after_lang": 0,
+    "output": 0,
+    "removed_total": 0
+  },
+  "output_rows": 0
 }

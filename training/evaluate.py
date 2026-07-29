@@ -13,13 +13,16 @@ import time
 from pathlib import Path
 
 # name -> (loader, split, src, tgt); frozen registry (SPEC_WEEK3.md §2.6).
+# "guzbench" reads data/external/guz_benchmark/guz_test.tsv — the held-out
+# Ekegusii benchmark built from the PSA test split (FLORES-200 has no
+# Ekegusii; see scripts/build_guz_benchmark.py).
 EVAL_SPECS = {
-    "psa_dev_en-sw":  ("psa", "dev",  "eng", "swa"),
-    "psa_dev_sw-en":  ("psa", "dev",  "eng", "swa"),   # reversed at load
-    "psa_test_en-sw": ("psa", "test", "eng", "swa"),
-    "psa_test_sw-en": ("psa", "test", "eng", "swa"),
-    "flores_en-guz":  ("flores", "devtest", "eng", "guz"),
-    "flores_guz-en":  ("flores", "devtest", "guz", "eng"),
+    "psa_dev_en-sw":   ("psa", "dev",  "eng", "swa"),
+    "psa_dev_sw-en":   ("psa", "dev",  "eng", "swa"),   # reversed at load
+    "psa_test_en-sw":  ("psa", "test", "eng", "swa"),
+    "psa_test_sw-en":  ("psa", "test", "eng", "swa"),
+    "psa_test_en-guz": ("guzbench", "test", "eng", "guz"),
+    "psa_test_guz-en": ("guzbench", "test", "guz", "eng"),
 }
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -37,8 +40,8 @@ def splits_dir() -> Path:
     return _resolve_dir("data/processed/splits")
 
 
-def flores_dir() -> Path:
-    return _resolve_dir("data/external/flores200")
+def guz_benchmark_dir() -> Path:
+    return _resolve_dir("data/external/guz_benchmark")
 
 
 def _load_psa_pairs(split: str, src: str, tgt: str,
@@ -65,13 +68,12 @@ def _load_psa_pairs(split: str, src: str, tgt: str,
     return [p[1] for p in pairs], [p[0] for p in pairs]
 
 
-def _load_flores_pairs(src: str, tgt: str,
-                       n: int | None, seed: int) -> tuple[list[str], list[str]]:
-    """FLORES-200 guz devtest via training.data.load_flores_eval (lazy import:
-    that module is built in parallel; code against SPEC_WEEK3.md §2.2)."""
-    from .data import load_flores_eval  # noqa: lazy import (parallel build)
+def _load_guz_pairs(src: str, tgt: str,
+                    n: int | None, seed: int) -> tuple[list[str], list[str]]:
+    """Held-out Ekegusii benchmark via training.data.load_guz_benchmark."""
+    from .data import load_guz_benchmark  # noqa: lazy import
 
-    ds = load_flores_eval(flores_dir(), n=n, seed=seed)
+    ds = load_guz_benchmark(guz_benchmark_dir(), n=n, seed=seed)
     eng, guz = list(ds["eng"]), list(ds["guz"])
     if (src, tgt) == ("eng", "guz"):
         return eng, guz
@@ -102,7 +104,7 @@ def evaluate_checkpoint(ckpt: str | Path, eval_spec: str, n: int | None = 200,
     if loader == "psa":
         sources, refs = _load_psa_pairs(split, src, tgt, n, seed)
     else:
-        sources, refs = _load_flores_pairs(src, tgt, n, seed)
+        sources, refs = _load_guz_pairs(src, tgt, n, seed)
 
     from .inference import MTTranslator  # noqa: lazy import (torch inside)
 

@@ -1,18 +1,20 @@
-"""Week 3 data builders — PSA splits + FLORES-200 seed/eval (SPEC_WEEK3.md §2.2).
+"""Week 3 data builders — PSA splits + held-out guz benchmark (SPEC_WEEK3.md §2.2).
 
 Canonical example columns (HF ``datasets.Dataset``):
     src_text, tgt_text, src_lang, tgt_lang, domain, provenance
 
 ``src_lang``/``tgt_lang`` in {"eng", "swa", "guz"}; ``provenance`` in
-{"psa", "flores_dev_seed", "backtranslation"}.
+{"psa", "backtranslation"}.
 
 Non-negotiables (spec §4):
-- FLORES **devtest never in training** — dev seed only; build_train_dataset
-  raises if asked for few-shot guz pairs while only devtest is on disk AND
-  no PSA-sourced guz pairs are available.
-- Ekegusii now comes primarily from real PSA pairs (lecturer gold data,
-  remediated dataset) — see SPEC_WEEK3.md addendum. FLORES dev remains an
-  OPTIONAL extra seed source; FLORES devtest stays a pure benchmark.
+- The guz benchmark (``guz_test.tsv``, built from the TEST split by
+  scripts/build_guz_benchmark.py) is EVALUATION-ONLY and never enters
+  training; build_train_dataset raises if asked for few-shot guz pairs
+  while the train split has no Ekegusii text.
+- Ekegusii comes exclusively from real PSA pairs (lecturer gold data,
+  remediated dataset). FLORES-200 was evaluated and dropped: the archive
+  has 204 languages and no guz_Latn, and NLLB-200's tokenizer has no
+  guz_Latn token either — no off-the-shelf Ekegusii benchmark exists.
 - Seeded everything (seed=42 default).
 - No torch/transformers import at module import time; ``datasets`` itself is
   imported lazily inside functions so this module imports cleanly on a bare
@@ -22,7 +24,6 @@ Non-negotiables (spec §4):
 
 from __future__ import annotations
 
-import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -37,15 +38,12 @@ CANONICAL_COLUMNS = [
 PSA_TEXT_COLUMNS = {"eng": "English", "swa": "Kiswahili", "guz": "Ekegusii"}
 
 PSA_DIRECTIONS = ("en-sw", "sw-en")        # available from the PSA splits
-GUZ_DIRECTIONS = ("en-guz", "sw-guz")      # PSA rows with Ekegusii + FLORES seed
+GUZ_DIRECTIONS = ("en-guz", "sw-guz")      # PSA rows with non-empty Ekegusii
 
 PROVENANCE_PSA = "psa"
-PROVENANCE_FLORES_SEED = "flores_dev_seed"
 PROVENANCE_BACKTRANSLATION = "backtranslation"
 
-_FLORES_DOMAIN = "general"
-
-DEFAULT_SEED_DIRS: list[str] = ["en-guz", "sw-guz"]
+DEFAULT_GUZ_DIRS: list[str] = ["en-guz", "sw-guz"]
 
 
 # ---------------------------------------------------------------------------
@@ -89,38 +87,8 @@ def _dataset_from_rows(rows: list[dict]):
 
 
 def _read_tsv(path: Path) -> pd.DataFrame:
-    """Read a canonical FLORES TSV (header ``eng\\tguz``), UTF-8."""
+    """Read a canonical benchmark TSV (header ``eng\\tguz``), UTF-8."""
     return pd.read_csv(path, sep="\t", dtype=str, encoding="utf-8").fillna("")
-
-
-def _flores_seed_rows(df: pd.DataFrame, directions: list[str]) -> list[dict]:
-    """Expand FLORES pairs into canonical rows for the requested guz dirs."""
-    has_sw = "swa" in df.columns
-    rows: list[dict] = []
-    for direction in directions:
-        if direction == "en-guz":
-            for _, r in df.iterrows():
-                rows.append({
-                    "src_text": r["eng"], "tgt_text": r["guz"],
-                    "src_lang": "eng", "tgt_lang": "guz",
-                    "domain": _FLORES_DOMAIN, "provenance": PROVENANCE_FLORES_SEED,
-                })
-        elif direction == "sw-guz":
-            if not has_sw:
-                warnings.warn(
-                    "load_flores_seed: no 'swa' column in guz_dev.tsv; "
-                    "skipping 'sw-guz' rows", stacklevel=2)
-                continue
-            for _, r in df.iterrows():
-                rows.append({
-                    "src_text": r["swa"], "tgt_text": r["guz"],
-                    "src_lang": "swa", "tgt_lang": "guz",
-                    "domain": _FLORES_DOMAIN, "provenance": PROVENANCE_FLORES_SEED,
-                })
-        else:
-            raise ValueError(
-                f"load_flores_seed only supports guz directions, got '{direction}'")
-    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -183,47 +151,29 @@ def load_psa_pairs(splits_dir: Path, split: str, directions: list[str]):
     return _dataset_from_rows(rows)
 
 
-def load_flores_seed(flores_dir: Path, n: int, seed: int = 42,
-                     directions: list[str] | None = None):
-    """Load n few-shot guz seed pairs from FLORES **dev** (never devtest).
+def load_guz_benchmark(benchmark_dir: Path, n: int | None = 200, seed: int = 42):
+    """Load the held-out Ekegusii benchmark pairs for evaluation ONLY.
 
-    Reads ``<flores_dir>/guz_dev.tsv`` (header ``eng<TAB>guz``), shuffles
-    with ``seed``, takes the FIRST n. Emits en-guz rows; sw-guz rows are
-    emitted only if a ``swa`` column exists (the plain fixture has none ->
-    skipped with a warning, no crash). provenance="flores_dev_seed".
-    """
-    directions = list(directions) if directions is not None else list(DEFAULT_SEED_DIRS)
-    dev_path = Path(flores_dir) / "guz_dev.tsv"
-    if not dev_path.exists():
-        raise FileNotFoundError(
-            f"FLORES dev seed file not found: {dev_path}. guz_devtest.tsv may "
-            "never be used for training — run scripts/fetch_flores.py first.")
-    df = _read_tsv(dev_path)
-    df = df.sample(frac=1.0, random_state=seed).head(n)
-    return _dataset_from_rows(_flores_seed_rows(df, directions))
-
-
-def load_flores_eval(flores_dir: Path, n: int | None = 200, seed: int = 42):
-    """Load FLORES **devtest** pairs for evaluation ONLY (never training).
-
-    Reads ``<flores_dir>/guz_devtest.tsv``; deterministic seeded sample of n
+    Reads ``<benchmark_dir>/guz_test.tsv`` (built from the PSA **test** split
+    by scripts/build_guz_benchmark.py); deterministic seeded sample of n
     (n=None -> all rows, in file order). Returns raw ``eng``/``guz`` columns;
-    evaluate.py normalizes them to src/tgt per eval spec.
+    evaluate.py normalizes them to src/tgt per eval spec. Never used for
+    training.
     """
     Dataset, _ = _require_datasets()
-    devtest_path = Path(flores_dir) / "guz_devtest.tsv"
-    if not devtest_path.exists():
+    bench_path = Path(benchmark_dir) / "guz_test.tsv"
+    if not bench_path.exists():
         raise FileNotFoundError(
-            f"FLORES devtest file not found: {devtest_path} — run "
-            "scripts/fetch_flores.py first.")
-    df = _read_tsv(devtest_path)
+            f"guz benchmark file not found: {bench_path} — run "
+            "scripts/build_guz_benchmark.py first.")
+    df = _read_tsv(bench_path)
     if n is not None:
         df = df.sample(frac=1.0, random_state=seed).head(n)
     return Dataset.from_dict({"eng": df["eng"].tolist(),
                               "guz": df["guz"].tolist()})
 
 
-def build_train_dataset(cfg: TrainConfig, splits_dir: Path, flores_dir: Path,
+def build_train_dataset(cfg: TrainConfig, splits_dir: Path,
                         augmented_csv: Path | None = None):
     """Build the full training Dataset for ``cfg`` (spec §2.2).
 
@@ -231,14 +181,12 @@ def build_train_dataset(cfg: TrainConfig, splits_dir: Path, flores_dir: Path,
       1. PSA pairs from the train split (en-sw / sw-en as requested);
       2. PSA-sourced guz pairs (rows with non-empty Ekegusii), gated by
          ``cfg.fewshot_guz``: 0 = exclude, N = seeded cap, -1 = all;
-      3. FLORES dev seed pairs — OPTIONAL extra, only if ``fewshot_guz > 0``
-         AND ``guz_dev.tsv`` is present (appended after the PSA guz pairs);
-      4. augmented_csv rows (provenance="backtranslation").
+      3. augmented_csv rows (provenance="backtranslation").
 
     Then applies a seeded shuffle and the cfg.max_samples cap (AFTER
-    concatenation). HARD GUARD: if cfg.fewshot_guz > 0 but NO guz pairs are
-    available at all (no Ekegusii in the train split and guz_dev.tsv
-    absent, e.g. only devtest on disk), raise — devtest must never train.
+    concatenation). HARD GUARD: if cfg.fewshot_guz > 0 but the train split
+    has no Ekegusii text at all, raise — the guz benchmark (built from the
+    test split) is evaluation-only and must never train.
     """
     _, concatenate_datasets = _require_datasets()
     directions = cfg.directions()
@@ -249,26 +197,18 @@ def build_train_dataset(cfg: TrainConfig, splits_dir: Path, flores_dir: Path,
         parts.append(load_psa_pairs(splits_dir, "train", psa_dirs))
 
     if cfg.fewshot_guz != 0:
-        guz_dirs = [d for d in directions if d in GUZ_DIRECTIONS] or list(DEFAULT_SEED_DIRS)
+        guz_dirs = [d for d in directions if d in GUZ_DIRECTIONS] or list(DEFAULT_GUZ_DIRS)
         psa_guz = load_psa_pairs(splits_dir, "train", guz_dirs)
         if cfg.fewshot_guz > 0 and len(psa_guz) > cfg.fewshot_guz:
             psa_guz = psa_guz.shuffle(seed=cfg.seed).select(range(cfg.fewshot_guz))
         if len(psa_guz):
             parts.append(psa_guz)
-        if cfg.fewshot_guz > 0:
-            flores_dir = Path(flores_dir)
-            dev_path = flores_dir / "guz_dev.tsv"
-            if dev_path.exists():
-                parts.append(load_flores_seed(flores_dir, cfg.fewshot_guz,
-                                              seed=cfg.seed, directions=guz_dirs))
-            elif len(psa_guz) == 0:
-                raise FileNotFoundError(
-                    f"fewshot_guz={cfg.fewshot_guz} requested but no guz "
-                    f"training pairs are available: the train split has no "
-                    f"Ekegusii text and {dev_path} is missing. FLORES "
-                    "guz_devtest.tsv is evaluation-only and may never be "
-                    "used for training; run scripts/fetch_flores.py to "
-                    "fetch guz_dev.tsv.")
+        elif cfg.fewshot_guz > 0:
+            raise FileNotFoundError(
+                f"fewshot_guz={cfg.fewshot_guz} requested but the train split "
+                f"has no Ekegusii text ({splits_dir}/train.csv). The guz "
+                "benchmark (guz_test.tsv) is built from the test split, is "
+                "evaluation-only, and may never be used for training.")
 
     if augmented_csv is not None:
         parts.append(_load_augmented(augmented_csv,

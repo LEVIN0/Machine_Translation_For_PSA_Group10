@@ -4,7 +4,7 @@
 Run from the project root:
     python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
     python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best \
-        --specs psa_dev_en-sw,flores_en-guz --n 200
+        --specs psa_dev_en-sw,psa_test_en-guz --n 200
 
 Results are printed as a table and written to
 runs/<run>/evals/<spec>.json (override with --out-dir).
@@ -20,7 +20,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from training.evaluate import EVAL_SPECS, evaluate_checkpoint  # noqa: E402
 
-DEFAULT_SPECS = "psa_dev_en-sw,psa_dev_sw-en,flores_en-guz,flores_guz-en"
+DEFAULT_SPECS = "psa_dev_en-sw,psa_dev_sw-en,psa_test_en-guz,psa_test_guz-en"
 
 
 def _default_out_dir(checkpoint: Path) -> Path | None:

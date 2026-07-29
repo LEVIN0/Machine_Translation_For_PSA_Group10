@@ -25,7 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 LECTURER_FIXTURE = FIXTURES / "lecturer_fixture.csv"
 GUZ_SPLITS_FIXTURE = FIXTURES / "week3_guz" / "splits"
-FLORES_FIXTURE = FIXTURES / "flores"
+SPLITS_FIXTURE = FIXTURES / "week3" / "splits"
 
 _SKIPPED: list[str] = []
 
@@ -244,34 +244,36 @@ def test_build_train_dataset_guz(tmp_out=None):
     from training.data import build_train_dataset
 
     base = dict(run_name="t", model_key="mt5_small")
-    no_flores = Path(tmp_out or tempfile.mkdtemp(prefix="psa_noflores_"))
 
-    # fewshot_guz=-1 -> ALL PSA-sourced guz pairs; FLORES not required
+    # fewshot_guz=-1 -> ALL PSA-sourced guz pairs (the only guz source)
     cfg = TrainConfig(direction="en-guz", fewshot_guz=-1, **base)
-    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE, no_flores)
+    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE)
     assert len(ds) == 3, f"expected all 3 PSA guz pairs, got {len(ds)}"
     assert set(ds["provenance"]) == {"psa"}
 
-    # fewshot_guz=2 -> seeded cap of 2 on PSA guz pairs; flores missing but
-    # PSA pairs exist, so NO raise (FLORES dev is now an optional extra)
+    # fewshot_guz=2 -> seeded cap of 2 on PSA guz pairs
     cfg = TrainConfig(direction="en-guz", fewshot_guz=2, **base)
-    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE, no_flores)
+    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE)
     assert len(ds) == 2, f"expected capped 2 pairs, got {len(ds)}"
     assert set(ds["provenance"]) == {"psa"}
     # cap is deterministic
-    ds2 = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE, no_flores)
+    ds2 = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE)
     assert ds["src_text"] == ds2["src_text"]
-
-    # fewshot_guz=2 WITH flores dev present -> 2 PSA pairs + 2 flores seeds
-    cfg = TrainConfig(direction="en-guz", fewshot_guz=2, **base)
-    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE, FLORES_FIXTURE)
-    assert len(ds) == 4, f"expected 2 psa + 2 flores pairs, got {len(ds)}"
-    assert set(ds["provenance"]) == {"psa", "flores_dev_seed"}
 
     # fewshot_guz=0 -> guz pairs excluded entirely
     cfg = TrainConfig(direction="en-sw", fewshot_guz=0, **base)
-    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE, FLORES_FIXTURE)
+    ds = build_train_dataset(cfg, GUZ_SPLITS_FIXTURE)
     assert set(ds["tgt_lang"]) == {"swa"}
+
+    # guard: few-shot guz requested but the train split has NO Ekegusii ->
+    # must raise (the benchmark TSV is evaluation-only, never trainable)
+    cfg = TrainConfig(direction="en-guz", fewshot_guz=2, **base)
+    try:
+        build_train_dataset(cfg, SPLITS_FIXTURE)
+    except FileNotFoundError as exc:
+        assert "ekegusii" in str(exc).lower() or "benchmark" in str(exc).lower()
+    else:
+        raise AssertionError("guz guard must raise FileNotFoundError")
     print("ok  test_build_train_dataset_guz")
 
 

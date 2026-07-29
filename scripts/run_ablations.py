@@ -8,8 +8,8 @@ Run from the project root:
     python scripts/run_ablations.py --table-only             # just the table
 
 Each run trains (unless it is a zero-shot eval-only entry), evaluates on the
-dev/FLORES specs and writes runs/<run>/evals/*.json. At the end the markdown
-results table is written to reports/week3_results.md.
+dev/guz-benchmark specs and writes runs/<run>/evals/*.json. At the end the
+markdown results table is written to reports/week3_results.md.
 """
 
 import argparse

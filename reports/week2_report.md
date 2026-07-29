@@ -3,7 +3,7 @@
 **Course:** DSA4020A Natural Language Processing
 **Group:** 10
 **Week:** 2 — Data Processing & EDA
-**Date:** 29 July 2026
+**Date:** 29 July 2026 (updated after the framework audit & lecturer dataset merge)
 
 ---
 
@@ -139,7 +139,8 @@ PSA 817 · team-written 150.
 
 - Experiment tracking setup (Weights & Biases)
 - Baselines: mT5-small and NLLB-200-distilled, zero-shot vs fine-tuned
-- Ekegusii training from the 2,848 real PSA pairs (FLORES-200 devtest reserved
-  purely as a benchmark)
+- Ekegusii training from the 2,848 real PSA pairs; the Ekegusii benchmark is
+  built from our held-out test split (FLORES-200 was evaluated and dropped —
+  it contains no Ekegusii; see Week 3 notes)
 - Back-translation augmentation for the 851 English-only rows
 - Domain-balanced training view per the EDA decision

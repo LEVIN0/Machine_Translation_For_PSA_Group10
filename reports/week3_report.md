@@ -3,7 +3,7 @@
 **Course:** DSA4020A Natural Language Processing
 **Group:** 10
 **Week:** 3 — Modeling with Transfer Learning (Sub-objective 2)
-**Date:** 29th of July 2026
+**Date:** {{DATE}}
 
 > **How to use this template:** every `{{PLACEHOLDER}}` gets replaced with the
 > measured value after the Colab runs. `reports/week3_results.md` is generated
@@ -34,8 +34,8 @@ pretraining exposure to the language.
 | Training environment | Google Colab (free tier), GPU: {{GPU_NAME, e.g. Tesla T4}} |
 | Framework | PyTorch + Hugging Face Transformers |
 | Experiment tracking | Weights & Biases (project `psa-mt-group10`) + per-run JSON logs |
-| Training data | PSA pairs from `data/processed/splits/train.csv` (paired rows, both directions) + FLORES-200 `guz_Latn` **dev** seed for few-shot runs |
-| Evaluation | sacreBLEU + chrF on PSA dev (EN→SW, SW→EN) and FLORES-200 `guz_Latn` **devtest** (EN→guz, guz→EN; devtest never used in training) |
+| Training data | PSA pairs from `data/processed/splits/train.csv` (paired rows, both directions) + PSA-sourced Ekegusii pairs from the same train split (capped per run) |
+| Evaluation | sacreBLEU + chrF on PSA dev (EN→SW, SW→EN) and the held-out Ekegusii benchmark `guz_test.tsv` (EN→guz, guz→EN; built from the test split, never used in training) |
 | Seed | 42 everywhere |
 
 ## 3. Models and hyperparameters
@@ -50,10 +50,19 @@ pretraining exposure to the language.
 | Max sequence length | 128 | 128 |
 | Precision | fp16 | fp16 |
 | Early selection | best dev sacreBLEU | best dev sacreBLEU |
-| Language coverage relevant to us | EN, SW (no Ekegusii) | EN, SW, **Ekegusii (`guz_Latn`)** |
+| Language coverage relevant to us | EN, SW (no Ekegusii) | EN, SW (no Ekegusii — tokenizer has no `guz_Latn`; we add it with a Swahili-initialised embedding) |
+
+> **Verified finding (affects the whole design):** FLORES-200 contains no
+> Ekegusii (204 languages checked, `guz_Latn` absent) and NLLB-200's
+> tokenizer has no `guz_Latn` token — **neither model has any Ekegusii
+> pretraining**. All Ekegusii results below are therefore true
+> unseen-language transfer, learned from our 2,848 real PSA guz pairs and
+> benchmarked on 138 held-out test pairs. NLLB zero-shot Ekegusii is
+> undefined (no base-model token to evaluate); mT5 zero-shot guz numbers
+> show the no-pretraining floor.
 
 Low-resource techniques used: **encoder freezing** (ablation run), **few-shot
-seed injection** (50/200 FLORES dev pairs), and **back-translation
+capping** (50/200 PSA-sourced Ekegusii pairs), and **back-translation
 augmentation** of English-only PSA rows (ablation run).
 
 ## 4. Runs and training time
@@ -67,17 +76,17 @@ augmentation** of English-only PSA rows (ablation run).
 | ft_nllb_freeze | + frozen encoder | {{n}} | {{pct}} | {{mm:ss}} | {{link}} |
 | ft_nllb_aug | + back-translation pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
 | ft_nllb_guz50 | + 50 Ekegusii seed pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
-| ft_nllb_guz200 | + 200 Ekegusii seed pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
-| ft_mt5_guz200 | mT5 + 200 Ekegusii seed pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+| ft_nllb_guz200 | + 200 Ekegusii train pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+| ft_mt5_guz200 | mT5 + 200 Ekegusii train pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
 
 ## 5. Preliminary results
 
 *(Auto-generated table from `reports/week3_results.md` goes here.)*
 
-| Run | PSA dev EN→SW BLEU/chrF | PSA dev SW→EN BLEU/chrF | FLORES EN→guz BLEU/chrF | FLORES guz→EN BLEU/chrF |
+| Run | PSA dev EN→SW BLEU/chrF | PSA dev SW→EN BLEU/chrF | Guz bench EN→guz BLEU/chrF | Guz bench guz→EN BLEU/chrF |
 |---|---|---|---|---|
 | zs_mt5 | {{/}} | {{/}} | {{/}} | {{/}} |
-| zs_nllb | {{/}} | {{/}} | {{/}} | {{/}} |
+| zs_nllb | {{/}} | {{/}} | n/a (no guz token) | n/a (no guz token) |
 | ft_mt5_base | {{/}} | {{/}} | {{/}} | {{/}} |
 | ft_nllb_base | {{/}} | {{/}} | {{/}} | {{/}} |
 | ft_nllb_freeze | {{/}} | {{/}} | — | — |
@@ -118,7 +127,7 @@ domains (EN↔SW, EN→guz, SW→guz). Sample outputs:
 
 ## 9. Next steps (Week 4)
 
-- Final evaluation on the held-out PSA test split + full FLORES devtest
+- Final evaluation on the held-out PSA test split + full guz benchmark (138 pairs)
 - Human evaluation using the Week 2 validation subset (fluency/adequacy)
 - Error analysis per domain
 - Deployment: wrap `MTTranslator` in the demo web app

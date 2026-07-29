@@ -211,7 +211,6 @@ def test_smoke_train():
 
         splits_dir = tmp / "splits"
         _write_splits(splits_dir)
-        (tmp / "flores").mkdir()
 
         from training.config import MODEL_ZOO, ModelConfig, TrainConfig
         from training.trainer import train
@@ -226,7 +225,7 @@ def test_smoke_train():
                 epochs=1, batch_size=2, grad_accum=1, max_samples=8,
                 fp16=False, report_to="none", output_root=str(tmp / "runs"))
             resolved_cfg = cfg.resolved()
-            best = train(cfg, splits_dir=splits_dir, flores_dir=tmp / "flores")
+            best = train(cfg, splits_dir=splits_dir)
         finally:
             MODEL_ZOO.pop("tiny_mt5", None)
 
@@ -254,7 +253,7 @@ def test_smoke_train():
                 epochs=1, batch_size=2, grad_accum=1, max_samples=4,
                 fp16=False, report_to="none", freeze_encoder=True,
                 freeze_embed=True, output_root=str(tmp / "runs"))
-            best_f = train(cfg_f, splits_dir=splits_dir, flores_dir=tmp / "flores")
+            best_f = train(cfg_f, splits_dir=splits_dir)
         finally:
             MODEL_ZOO.pop("tiny_mt5", None)
         metrics_f = load_json(Path(cfg_f.output_root) / "smoke_frozen"

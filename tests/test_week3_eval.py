@@ -32,7 +32,7 @@ EXPECTED_MATRIX = [
 ]
 EXPECTED_SPECS = {
     "psa_dev_en-sw", "psa_dev_sw-en", "psa_test_en-sw", "psa_test_sw-en",
-    "flores_en-guz", "flores_guz-en",
+    "psa_test_en-guz", "psa_test_guz-en",
 }
 DOMAINS = {"Health", "Education", "Agriculture", "Security", "Governance"}
 
@@ -62,13 +62,13 @@ def test_eval_specs_registry():
     for name, spec in EVAL_SPECS.items():
         assert isinstance(spec, tuple) and len(spec) == 4, (name, spec)
         loader, split, src, tgt = spec
-        assert loader in {"psa", "flores"}, name
+        assert loader in {"psa", "guzbench"}, name
         assert src in LANGS and tgt in LANGS and src != tgt, name
         if loader == "psa":
             assert split in {"dev", "test"}, name
             assert {src, tgt} == {"eng", "swa"}, name
         else:
-            assert split == "devtest", name
+            assert split == "test", name
             assert {src, tgt} == {"eng", "guz"}, name
     print("ok  test_eval_specs_registry")
 
@@ -124,8 +124,8 @@ def test_write_results_table():
             "sacrebleu": 12.345, "chrf": 40.5, "n_train_pairs": 5000,
             "trainable_pct": 100.0, "seconds": 1234.5,
         }), encoding="utf-8")
-        (ft / "evals" / "flores_en-guz.json").write_text(json.dumps({
-            "eval_spec": "flores_en-guz", "ckpt": "x", "n": 200,
+        (ft / "evals" / "psa_test_en-guz.json").write_text(json.dumps({
+            "eval_spec": "psa_test_en-guz", "ckpt": "x", "n": 200,
             "bleu": 3.21, "chrf": 22.2, "seconds": 10.0,
             "model_key": "nllb_600m",
         }), encoding="utf-8")
@@ -149,7 +149,7 @@ def test_write_results_table():
 
         assert "ft_nllb_guz200" in table and "zs_mt5" in table
         assert "12.35" in table  # dev BLEU from metrics_dev.json
-        assert "3.21" in table   # flores BLEU from evals json
+        assert "3.21" in table   # guz BLEU from evals json
         assert "1.50" in table   # zs dev BLEU from evals json
         assert "nllb_600m" in table and "mt5_small" in table
         assert "zero-shot" in table

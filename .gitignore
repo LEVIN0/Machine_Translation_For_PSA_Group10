@@ -1,6 +1,4 @@
 .venv/
 __pycache__/
 .ipynb_checkpoints/
-*.zip
-~$*
-reports/week1_report_auto.md
+data/external/*.zip

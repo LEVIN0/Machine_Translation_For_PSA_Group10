@@ -52,6 +52,7 @@ scrapable text. Replaced by Amref Health Africa (#4).
 |--------|--------|-----|-----------|--------|-----:|
 | TICO-19 | Health | https://tico-19.github.io/ | EN–SW (human-translated) | ✅ **CC BY 4.0**; kept whole as corpus data (`type:"corpus"`) — crisis/health domain, highly PSA-adjacent; its per-row `psa_class` is recorded in Metadata | 3,004 |
 | Tatoeba | Mixed (keyword heuristic) | https://tatoeba.org/en/downloads | EN–SW | ⬜ Optional, not yet used (**CC BY 2.0 FR**); rows matching no PSA-domain keyword would be dropped by the relevance filter | 0 |
+| FLORES-200 | — | https://github.com/facebookresearch/flores | 204 languages | ❌ **Evaluated and excluded (Week 3):** no Ekegusii in the archive (`guz_Latn` absent; Kenyan languages are kik/kam/luo only) and NLLB-200's tokenizer has no `guz_Latn` token. The Ekegusii benchmark is built from our held-out test split instead (`scripts/build_guz_benchmark.py`; see `docs/SPEC_WEEK3.md` §8) | 0 |
 
 ## Team-written PSAs (tier 3)
 

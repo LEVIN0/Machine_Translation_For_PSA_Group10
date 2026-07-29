@@ -17,7 +17,7 @@ DEFAULT_AUGMENTED_CSV = Path("data/processed/augmented_backtranslation.csv")
 
 # Headline eval specs rendered in the results table.
 _DEV_SPEC = "psa_dev_en-sw"
-_FLORES_SPEC = "flores_en-guz"
+_GUZ_SPEC = "psa_test_en-guz"
 
 
 def standard_matrix(quick: bool = False) -> list[TrainConfig]:
@@ -42,7 +42,8 @@ def standard_matrix(quick: bool = False) -> list[TrainConfig]:
         # 5. augmentation via back-translation (runner skips if csv absent)
         TrainConfig(run_name="ft_nllb_aug", model_key="nllb_600m",
                     direction="both", use_augmentation=True),
-        # 6./7. Ekegusii few-shot seed from FLORES dev
+        # 6./7. Ekegusii few-shot from the PSA train split (the only guz
+        # source — FLORES-200 has no Ekegusii; NLLB-200 has no guz token)
         TrainConfig(run_name="ft_nllb_guz50", model_key="nllb_600m",
                     direction="all", fewshot_guz=50),
         TrainConfig(run_name="ft_nllb_guz200", model_key="nllb_600m",
@@ -63,10 +64,18 @@ def standard_matrix(quick: bool = False) -> list[TrainConfig]:
 
 
 def default_eval_specs(cfg: TrainConfig) -> list[str]:
-    """Dev-set evals for every run; FLORES guz evals for guz/zs runs."""
+    """Dev-set evals for every run; guz benchmark evals for guz runs.
+
+    Zero-shot runs (epochs=0) also get guz evals on mT5 — a real "no
+    Ekegusii pretraining" measurement (~0 expected). NLLB zero-shot guz is
+    undefined by design: the hub tokenizer has no guz_Latn token, so there
+    is no meaningful unmodified base model to evaluate.
+    """
     specs = ["psa_dev_en-sw", "psa_dev_sw-en"]
-    if cfg.direction == "all" or cfg.fewshot_guz > 0 or cfg.epochs == 0:
-        specs += ["flores_en-guz", "flores_guz-en"]
+    has_guz = cfg.direction == "all" or cfg.direction in ("en-guz", "sw-guz")
+    zs_mt5 = cfg.epochs == 0 and MODEL_ZOO[cfg.model_key].family == "mt5"
+    if has_guz or zs_mt5:
+        specs += ["psa_test_en-guz", "psa_test_guz-en"]
     return specs
 
 
@@ -212,7 +221,7 @@ def write_results_table(runs_root: Path, out_md: Path) -> Path:
     rows.sort(key=lambda r: (order.get(r["name"], len(order)), r["name"]))
 
     header = ("| Run | Model | Config | Dev BLEU | Dev chrF | "
-              "FLORES BLEU | FLORES chrF | Trainable % | Seconds |")
+              "Guz BLEU | Guz chrF | Trainable % | Seconds |")
     sep = "|---|---|---|---|---|---|---|---|---|"
     lines = [
         "# Week 3 ablation results",
@@ -231,13 +240,13 @@ def write_results_table(runs_root: Path, out_md: Path) -> Path:
             metrics, "sacrebleu", "eval_sacrebleu", "bleu", "eval_bleu")
         dev_chrf = _get(dev, "chrf") or _get(
             metrics, "chrf", "eval_chrf", "chrF")
-        flores = evals.get(_FLORES_SPEC, {})
+        guz = evals.get(_GUZ_SPEC, {})
         trainable = _get(metrics, "trainable_pct", "trainable_percent")
         seconds = _get(metrics, "seconds", "train_seconds", "train_runtime")
         lines.append(
             f"| {rec['name']} | {model or '—'} | {_flags(cfg)} "
             f"| {_fmt(dev_bleu)} | {_fmt(dev_chrf)} "
-            f"| {_fmt(_get(flores, 'bleu'))} | {_fmt(_get(flores, 'chrf'))} "
+            f"| {_fmt(_get(guz, 'bleu'))} | {_fmt(_get(guz, 'chrf'))} "
             f"| {_fmt(trainable, 1)} | {_fmt(seconds, 0)} |")
 
     out_md = Path(out_md)
