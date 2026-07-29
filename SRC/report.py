@@ -44,7 +44,9 @@ def _md_escape(text):
 
 
 def generate_report(csv_path=DATASET_CSV,
-                    out_path=REPORTS_DIR / "week1_report.md"):
+                    out_path=REPORTS_DIR / "week1_report_auto.md"):
+    # NOTE: auto-generated stats snapshot; the hand-written narrative report
+    # lives at reports/week1_report.md and must NOT be overwritten.
     """Generate the Week 1 markdown report from the built dataset CSV."""
     ensure_dirs()
     csv_path = Path(csv_path)

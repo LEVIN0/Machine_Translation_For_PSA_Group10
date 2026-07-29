@@ -4,9 +4,9 @@ _Generated: 2026-07-29 — DSA4020A, Group 10_
 
 ## Overview
 
-- **Total rows:** 13369
-- **Paired EN–SW rows (Kiswahili filled):** 2987
-- **Distinct sources:** 17
+- **Total rows:** 13519
+- **Paired EN–SW rows (Kiswahili filled):** 3137
+- **Distinct sources:** 18
 - **Dataset file:** `psa_parallel_week1.csv`
 
 ## Rows per Domain
@@ -15,9 +15,9 @@ _Generated: 2026-07-29 — DSA4020A, Group 10_
 |---|---|
 | Health | 8655 |
 | Agriculture | 2409 |
-| Governance | 1336 |
-| Security | 604 |
-| Education | 365 |
+| Governance | 1386 |
+| Security | 654 |
+| Education | 415 |
 
 ## Rows per Source
 
@@ -32,6 +32,7 @@ _Generated: 2026-07-29 — DSA4020A, Group 10_
 | Ethics and Anti-Corruption Commission | 335 |
 | Ministry of Education | 256 |
 | National Environment Management Authority | 241 |
+| Team-written | 150 |
 | COVAW (Coalition on Violence Against Women) | 128 |
 | Directorate of Criminal Investigations | 115 |
 | KUCCPS | 96 |
@@ -46,7 +47,7 @@ _Generated: 2026-07-29 — DSA4020A, Group 10_
 | Language | Mean | Median |
 |---|---|---|
 | English | 19.4 | 17 |
-| Kiswahili | 24.0 | 22 |
+| Kiswahili | 23.7 | 21 |
 
 ## Sample rows (first 5)
 

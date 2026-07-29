@@ -95,12 +95,15 @@ def test_full_build_and_report(tmp_out=None):
     # Redirect outputs into a temp dir; point the TMX importer at the fixture.
     orig_csv, orig_stats = build_dataset.DATASET_CSV, build_dataset.STATS_JSON
     orig_import = build_dataset.import_tico19
+    orig_manual = build_dataset.import_manual
     orig_report_out = report_mod.REPORTS_DIR
     build_dataset.DATASET_CSV = csv_path
     build_dataset.STATS_JSON = stats_path
     build_dataset.import_tico19 = lambda **kw: orig_import(
         tmx_path=FIXTURE_TMX, verbose=False, **{k: v for k, v in kw.items()
                                                 if k != "verbose"})
+    # Isolate from any real files a developer has dropped into data/manual/
+    build_dataset.import_manual = lambda verbose=True: []
     report_mod.REPORTS_DIR = tmp_out
     try:
         out = build_dataset.build(scrape=False, use_tatoeba=False, verbose=False)
@@ -123,6 +126,7 @@ def test_full_build_and_report(tmp_out=None):
         build_dataset.DATASET_CSV = orig_csv
         build_dataset.STATS_JSON = orig_stats
         build_dataset.import_tico19 = orig_import
+        build_dataset.import_manual = orig_manual
         report_mod.REPORTS_DIR = orig_report_out
     print("ok  test_full_build_and_report")
 
@@ -265,12 +269,15 @@ def test_eda_smoke(tmp_out=None):
 
 
 def test_manual_import():
-    """Tiny CSV in data/manual/ -> schema-valid Team-written records; cleanup."""
+    """Tiny CSV in a temp manual dir -> schema-valid Team-written records.
+
+    Uses a temp dir so real submissions in data/manual/ never affect the
+    count. Separately, any real submissions present must import cleanly.
+    """
     from SRC.corpora.manual import import_manual
     from SRC import config
 
-    manual_dir = Path(config.EXTERNAL_DIR).parent / "manual"
-    manual_dir.mkdir(parents=True, exist_ok=True)
+    manual_dir = Path(tempfile.mkdtemp(prefix="psa_manual_"))
     probe = manual_dir / "zz_test_probe.csv"
     probe.write_text(
         "Domain,English,Kiswahili,Ekegusii,Notes\n"
@@ -278,18 +285,23 @@ def test_manual_import():
         "Education,\"Enrol your child in the nearest public school today.\",,,probe row\n"
         "Space,\"Invalid domain rows are skipped entirely.\",,,bad row\n",
         encoding="utf-8")
-    try:
-        records = import_manual(manual_dir=manual_dir, verbose=False)
-        assert len(records) == 2, f"expected 2 records, got {len(records)}"
-        assert all(r["Source"] == "Team-written" for r in records)
-        assert all(r["Status"] == "Pending" for r in records)
-        df = assign_ids(pd.DataFrame(records))
-        assert validate_schema(df) == [], validate_schema(df)
-        # missing directory -> warn + []
-        assert import_manual(manual_dir=manual_dir / "nope",
-                             verbose=False) == []
-    finally:
-        probe.unlink(missing_ok=True)
+    records = import_manual(manual_dir=manual_dir, verbose=False)
+    assert len(records) == 2, f"expected 2 records, got {len(records)}"
+    assert all(r["Source"] == "Team-written" for r in records)
+    assert all(r["Status"] == "Pending" for r in records)
+    df = assign_ids(pd.DataFrame(records))
+    assert validate_schema(df) == [], validate_schema(df)
+    # missing directory -> warn + []
+    assert import_manual(manual_dir=manual_dir / "nope",
+                         verbose=False) == []
+
+    # Real submissions (if the developer has dropped any into data/manual/)
+    # must import and validate cleanly too.
+    real_dir = Path(config.EXTERNAL_DIR).parent / "manual"
+    real_records = import_manual(manual_dir=real_dir, verbose=False)
+    if real_records:
+        real_df = assign_ids(pd.DataFrame(real_records))
+        assert validate_schema(real_df) == [], validate_schema(real_df)
     print("ok  test_manual_import")
 
 

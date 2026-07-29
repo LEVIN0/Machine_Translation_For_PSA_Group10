@@ -112,11 +112,20 @@ SITES = [
         "name": "education_ke",
         "domain": "Education",
         "source": "Ministry of Education",
-        "start_urls": ["https://www.education.go.ke/news"],
-        "link_patterns": [r"/news/", r"/node/"],
-        "content_selectors": list(_DEFAULT_SELECTORS),
-        "max_pages": 20,
-            "verify_ssl": False,  # .go.ke cert chain breaks under antivirus TLS inspection
+        # articles are root-level slugs; homepage + blog grid are the listings
+        "start_urls": [
+            "https://www.education.go.ke",
+            "https://www.education.go.ke/blogs-grid",
+        ],
+        "link_patterns": [
+            r"education\.go\.ke/(?!A-to-Z|acts$|bills$|background|"
+            r"basic-education-programmes|cabinet-secretary|certificate-verification|"
+            r"state-department|blogs-grid|contact|downloads|tenders|vacancies|"
+            r"policies|gallery|speeches)[a-z0-9-]{10,}/?$"
+        ],
+        "content_selectors": ["article p", "main p", ".field-item p", "p"],
+        "max_pages": 30,
+        "verify_ssl": False,  # .go.ke cert chain breaks under antivirus TLS inspection
     },
     {
         "name": "kra_notices",
@@ -261,6 +270,23 @@ SITES = [
         "link_patterns": [r"kuccps\.net/kuccps-[a-z0-9-]+"],
         "content_selectors": ["article p", "main p", ".entry-content p", "p"],
         "max_pages": 20,
+        "verify_ssl": False,
+    },
+    {
+        "name": "nacada_drug_prev",
+        "domain": "Security",  # drug & substance abuse prevention (public safety)
+        "source": "NACADA",
+        "start_urls": ["https://www.nacada.go.ke"],
+        # articles are root-level slugs (verified on homepage)
+        "link_patterns": [
+            r"nacada\.go\.ke/(?!themes|about|contact|downloads|tenders|"
+            r"vacancies|board|staff|faq|gallery|events|programs)[a-z0-9-]+/?$"
+        ],
+        "content_selectors": [
+            "article p, article li", "main p, main li",
+            ".field--name-body p, .field--name-body li", "p"
+        ],
+        "max_pages": 25,
         "verify_ssl": False,
     },
 ]
