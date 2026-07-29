@@ -1,0 +1,6 @@
+PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status
+PSA000001,Health,Boil water before drinking it every single day.,Chemsha maji kabla ya kunywa kila siku.,Tancha amache mbee okunywa kila risonde.,Lecturer dataset (PSA_KE_Final),,,"{""type"": ""gold""}",Validated
+PSA000002,Education,Register your child at school this week.,,Andika omwana wawe ego esomero.,Lecturer dataset (PSA_KE_Final),,,"{""type"": ""gold""}",Validated
+PSA000003,Security,Report suspicious activity to the police today.,Ripoti shughuli za kutiliwa shaka kwa polisi.,,Lecturer dataset (PSA_KE_Final),,,"{""type"": ""gold""}",Validated
+PSA000004,Agriculture,Plant certified seeds before the long rains.,Panda mbegu bora kabla ya mvua ndefu.,Ronda obusuma mbee kiora.,Lecturer dataset (PSA_KE_Final),,,"{""type"": ""gold""}",Validated
+PSA000005,Governance,Public notice about county services for all residents.,,,Lecturer dataset (PSA_KE_Final),,,"{""type"": ""gold""}",Validated

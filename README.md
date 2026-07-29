@@ -22,31 +22,34 @@ few-shot cross-lingual transfer learning on our curated PSA dataset.
 |------|-------|--------|
 | 1 | Data collection & curation | ✅ Complete |
 | 2 | Preprocessing & EDA | ✅ Complete |
-| 3 | Modeling with transfer learning (mT5 / NLLB / mBART) | ⬜ Next |
-| 4 | Evaluation, deployment & documentation | ⬜ |
+| 3 | Modeling with transfer learning (mT5-small / NLLB-200) | ✅ Complete |
+| 4 | Evaluation, deployment & documentation | ⬜ Next |
 
 ## Dataset at a glance
 
-**13,519 rows** across the 5 brief domains, built from **18 data sources**
-(16 scraping sources currently producing + the TICO-19 corpus + team-written
-PSAs; 21 site configs in total — see `docs/sources.md` for the full registry
-including blocked/dry sources).
+**6,823 rows** across the 5 brief domains, **audited against the lecturer's
+PSA Framework** (`reports/framework_audit.md`). Composition: lecturer gold
+dataset 2,852 rows (with Ekegusii + Dholuo + Somali translations) · TICO-19
+corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 
 | Domain | Rows | Share |
 |--------|-----:|------:|
-| Health | 8,655 | 64.0% |
-| Agriculture | 2,409 | 17.8% |
-| Governance | 1,386 | 10.3% |
-| Security | 654 | 4.8% |
-| Education | 415 | 3.1% |
+| Health | 3,944 | 57.8% |
+| Security | 952 | 14.0% |
+| Education | 828 | 12.1% |
+| Agriculture | 559 | 8.2% |
+| Governance | 540 | 7.9% |
 
-- **3,137 rows (23.2%) are genuine EN–SW parallel pairs** (TICO-19 + 150
-  team-written pairs); the rest are English-only pending translation work.
+- **5,972 rows (87.5%) are EN–SW parallel**; **2,848 rows (41.7%) have
+  Ekegusii** — our transfer target now has real PSA training pairs.
+- Every row carries an auditable `psa_class` in its Metadata (PSA /
+  PressRelease / Legal / Informational); 9,548 scraped rows that failed the
+  framework audit were deleted (see the Week 1 report addendum).
 - Train/dev/test splits (90/5/5, stratified by domain, seed 42, zero text
-  leakage): **12,167 / 676 / 676** rows in `data/processed/splits/`.
+  leakage): **6,141 / 341 / 341** rows in `data/processed/splits/`.
 - A 500-row native-speaker validation subset is prepared in
   `data/validation/` with guidelines in `docs/validation_guide.md`.
-- Ekegusii column is an intentional placeholder for Week 3 few-shot transfer.
+- FLORES-200 `guz_Latn` devtest is reserved purely as an evaluation benchmark.
 
 ## Repository structure
 
@@ -56,6 +59,7 @@ including blocked/dry sources).
 │   ├── schema.py            # the dataset schema — single source of truth
 │   ├── scraper.py           # robots.txt handling + polite (rate-limited) fetching
 │   ├── cleaning.py          # dedup, language detection, fragment & relevance filtering
+│   ├── psa_classify.py      # lecturer-calibrated PSA framework classifier
 │   ├── build_dataset.py     # merge all sources → clean → assign IDs → CSV + stats
 │   ├── report.py            # auto-generates the dataset stats report
 │   ├── preprocessing.py     # tokenization, normalization, code-switch & glossary tagging
@@ -67,15 +71,33 @@ including blocked/dry sources).
 │   └── corpora/
 │       ├── tico19.py        # downloads + parses the TICO-19 EN–SW translation memory
 │       ├── tatoeba.py       # optional Tatoeba EN–SW pairs (manual download)
+│       ├── lecturer.py      # imports the lecturer gold dataset (PSA_KE_Final.csv)
 │       └── manual.py        # imports team-written PSAs from data/manual/
+├── training/
+│   ├── config.py            # model zoo (mT5-small, NLLB-200-600M) + TrainConfig
+│   ├── data.py              # splits/FLORES → paired HF datasets (devtest never trains)
+│   ├── augment.py           # back-translation of English-only rows
+│   ├── trainer.py           # Seq2SeqTrainer wiring: W&B, freezing, best-checkpoint
+│   ├── evaluate.py          # sacreBLEU + chrF on PSA dev/test + FLORES devtest
+│   ├── inference.py         # MTTranslator (EN/SW/guz) + demo PSAs
+│   └── ablate.py            # ablation matrix + auto results table
 ├── scripts/
 │   ├── run_week1.py         # Week 1 pipeline: scrape + corpora → dataset
 │   ├── scrape_more.py       # incremental: append new sites / team-written PSAs
 │   ├── reclean.py           # re-apply cleaning to the existing CSV (no rescrape)
-│   └── run_week2.py         # Week 2 pipeline: preprocess → EDA → splits → validation subset
+│   ├── remediate_dataset.py # framework audit + lecturer gold merge (one command)
+│   ├── run_week2.py         # Week 2 pipeline: preprocess → EDA → splits → validation subset
+│   ├── fetch_flores.py      # download FLORES-200 guz dev (seed) + devtest (eval)
+│   ├── run_training.py      # Week 3: one training run with a named config
+│   ├── run_ablations.py     # Week 3: run the ablation matrix
+│   ├── run_eval.py          # Week 3: evaluate checkpoint(s)
+│   └── translate.py         # Week 3: translation demo CLI (success criterion)
+├── notebooks/
+│   └── week3_colab.ipynb    # one-click Colab runbook (GPU check → train → demo)
 ├── tests/
-│   ├── fixtures/            # small TMX + synthetic CSV fixtures for offline tests
-│   └── test_smoke.py        # test suite (run before committing)
+│   ├── fixtures/            # small TMX + synthetic CSV + FLORES TSV fixtures
+│   ├── test_smoke.py        # test suite (run before committing)
+│   └── test_week3_*.py      # Week 3 modules (auto-discovered by test_smoke.py)
 ├── data/
 │   ├── raw/                 # untouched raw exports
 │   ├── processed/           # dataset CSV, build stats, preprocessed CSV, splits/
@@ -87,13 +109,18 @@ including blocked/dry sources).
 │   ├── sources.md           # documented source registry (incl. blocked/dry sources)
 │   ├── ETHICS.md            # scraping ethics: robots.txt, rate limits, licensing
 │   ├── team_written_psa_kit.md  # how the team-written PSAs were produced
-│   └── validation_guide.md  # native-speaker validation guidelines
+│   ├── validation_guide.md  # native-speaker validation guidelines
+│   └── week3_colab_guide.md # Colab training guide + GPU troubleshooting
 ├── reports/
-│   ├── week1_report.md      # Week 1 report (data collection & curation)
+│   ├── week1_report.md      # Week 1 report (data collection & curation + audit addendum)
 │   ├── week2_report.md      # Week 2 report (preprocessing & EDA)
 │   ├── week2_eda_report.md  # auto-generated EDA stats report
+│   ├── framework_audit.md   # PSA framework audit: per-source kept/dropped, method
+│   ├── week3_report.md      # Week 3 report (modeling with transfer learning)
+│   ├── week3_results.md     # auto-generated ablation results table
 │   └── figures/             # 6 EDA figures (domain, length, pairing, sources)
-└── requirements.txt
+├── requirements.txt         # Weeks 1–2 dependencies
+└── requirements-training.txt  # Week 3 ML stack (torch, transformers, wandb…)
 ```
 
 ## Dataset schema
@@ -155,9 +182,23 @@ python scripts/reclean.py
 # --- Week 2: preprocess, EDA, splits, validation subset ---
 python scripts/run_week2.py
 
+# --- Week 3: training (GPU needed — use notebooks/week3_colab.ipynb on Colab) ---
+python scripts/fetch_flores.py                  # one-time FLORES-200 download
+python scripts/run_training.py --model nllb_600m --run-name ft_nllb_base
+python scripts/run_ablations.py --matrix quick  # or: standard
+python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
+python scripts/translate.py --demo              # translation demo (8 sample PSAs)
+
 # --- Any time: run the test suite ---
 python tests/test_smoke.py
 ```
+
+For Week 3 training we use **Google Colab (free GPU)** — open
+`notebooks/week3_colab.ipynb` and run top to bottom; the guide with expected
+runtimes and GPU troubleshooting is `docs/week3_colab_guide.md`. Experiments
+are tracked in **Weights & Biases** (project `psa-mt-group10`) with JSON-log
+fallback, so no run is ever lost. See `reports/week3_report.md` for
+hyperparameters, ablations and preliminary results.
 
 Outputs:
 
@@ -168,14 +209,18 @@ Outputs:
 - `reports/week2_eda_report.md` + `reports/figures/` — auto EDA report + 6 figures
 - `reports/week1_report_auto.md` — auto stats report (git-ignored, regenerable)
 
-## Data strategy (three tiers)
+## Data strategy (four tiers)
 
+0. **Lecturer gold dataset** (`PSA_KE_Final.csv`) — 2,852 framework-validated
+   PSAs with EN/SW/**Ekegusii**/Dholuo/Somali text; merged verbatim, marked
+   `type:"gold"` in Metadata, `Status="Validated"`.
 1. **Automated scraping** from Kenyan government, NGO and UN sources
-   (BeautifulSoup + requests, config-driven collectors; 21 sites configured).
+   (BeautifulSoup + requests, config-driven collectors; 21 sites configured),
+   **filtered by the framework audit** to high-confidence PSA rows.
 2. **Open parallel corpora** for genuine EN–SW pairs — currently TICO-19
-   (CC BY 4.0, 3,004 rows). Tatoeba (CC BY 2.0) is supported but optional:
-   download the exports from https://tatoeba.org/en/downloads into
-   `data/external/tatoeba/`.
+   (CC BY 4.0, 3,004 rows, kept whole as corpus data). Tatoeba (CC BY 2.0) is
+   supported but optional: download the exports from
+   https://tatoeba.org/en/downloads into `data/external/tatoeba/`.
 3. **Team-written PSAs** for sub-topics with no scrapeable web presence —
    **done**: 150 original EN–SW pairs covering Education (school access,
    vocational, civic education, resources, safety), Security (public safety,
@@ -183,6 +228,12 @@ Outputs:
    (anti-corruption, public participation, elections, service delivery,
    devolution), 10 pairs per sub-topic. Process documented in
    `docs/team_written_psa_kit.md`; submissions live in `data/manual/`.
+
+> **Framework audit.** After the lecturer issued the PSA Framework, every
+> scraped row was classified (`SRC/psa_classify.py`, lecturer-calibrated rules)
+> and 9,548 non-PSA scraped rows were deleted. One command reproduces it:
+> `python scripts/remediate_dataset.py --lecturer data/external/PSA_KE_Final.csv`
+> (see `reports/framework_audit.md` and the Week 1 report addendum).
 
 > **FLORES-200 is NOT used as training data.** It is an evaluation benchmark;
 > training on it would inflate our Week 4 metrics. It is reserved for evaluation.
@@ -224,14 +275,14 @@ rows are appended to the existing dataset and re-cleaned automatically.
 
 ## Known limitations
 
-- Domain imbalance remains: Health is 64% of the dataset (down from ~85%
-  mid-pipeline). Education and Security were boosted with new scraping
-  sources and team-written pairs, and remain the priority for further growth.
-- Only 23.2% of rows are currently EN–SW parallel; English-only rows need
-  translation (Week 3 back-translation) or exclusion from supervised training.
-- Ekegusii is an empty placeholder until Week 3 few-shot transfer.
-- Code-switching is rare in this corpus (1 row flagged in 13,519), so the
-  Week 2 code-switch handling is built and tested but barely exercised.
+- Health is still the largest domain (57.8%), though far better balanced than
+  at Week 1 (was 85% mid-pipeline); Week 3 uses a domain-balanced training view.
+- 851 rows (12.5%) remain English-only (mostly TICO-19); Week 3
+  back-translation will create synthetic pairs from vetted rows.
+- 195 lecturer rows (6.8%) contain encoding artifacts (mojibake) from the
+  source file; text is kept verbatim pending lecturer confirmation.
+- The PSA framework classifier is a documented heuristic — per-row decisions
+  are auditable via `psa_class` in Metadata, but borderline cases exist.
 - Some Kenyan government sites publish advisories only as PDFs/images (e.g.
   Ministry of Health) and are not scrapable as text; others (NTSA, National
   Police Service, Kilimo) yielded no usable text with the current selectors.

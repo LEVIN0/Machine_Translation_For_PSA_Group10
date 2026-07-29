@@ -1,0 +1,5 @@
+PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status
+PSA000015,Health,Mosquito nets should be tucked under the mattress every night.,Chandarua kitie chini ya godoro kila usiku kabla ya kulala.,,TICO-19,2024-06-14,https://tico-19.github.io/,"{""type"": ""corpus""}",Validated
+PSA000016,Security,Lock the grain store before you leave the farm in the evening.,Funga ghala la nafaka kabla hujaondoka shambani jioni.,,Manual,2024-06-15,,"{""type"": ""manual""}",Pending
+PSA000017,Governance,Public meetings are announced on the chief's notice board.,,,Scraped,2024-06-16,https://example.org/gov3,"{""type"": ""scraped""}",Pending
+PSA000018,Education,Homework done on time helps pupils pass their exams.,,,Manual,2024-06-17,,"{""type"": ""manual""}",Pending

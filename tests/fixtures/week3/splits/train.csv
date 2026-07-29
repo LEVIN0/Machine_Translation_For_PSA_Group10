@@ -1,0 +1,11 @@
+PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status
+PSA000001,Health,Wash your hands with soap and running water for twenty seconds.,Osha mikono yako kwa sabuni na maji yanayotiririka kwa sekunde ishirini.,,TICO-19,2024-06-01,https://tico-19.github.io/,"{""type"": ""corpus""}",Validated
+PSA000002,Health,Seek medical care immediately if you develop a high fever.,Tafuta huduma ya afya mara moja ukiwa na homa kali.,,TICO-19,2024-06-01,https://tico-19.github.io/,"{""type"": ""corpus""}",Validated
+PSA000003,Education,Schools reopen on Monday and every child should attend.,Shule zinafunguliwa Jumatatu na kila mtoto apaswa kuhudhuria.,,Scraped,2024-06-02,https://example.org/edu1,"{""type"": ""scraped""}",Pending
+PSA000004,Agriculture,Store your maize harvest in a dry and well ventilated crib.,Hifadhi mavuno yako ya mahindi katika kihenge kikavu chenye hewa safi.,,Manual,2024-06-03,,"{""type"": ""manual""}",Validated
+PSA000005,Security,Report strangers who ask about the water tank to the chief.,Ripoti wageni wanaouliza kuhusu tangi la maji kwa mwenyekiti.,,Manual,2024-06-04,,"{""type"": ""manual""}",Pending
+PSA000006,Governance,Register to vote before the deadline to have your voice heard.,Jisajili kupiga kura kabla ya muda kumalizika ili sauti yako isikike.,,Scraped,2024-06-05,https://example.org/gov1,"{""type"": ""scraped""}",Pending
+PSA000007,Health,Breast milk alone is best for babies during their first six months.,,,Manual,2024-06-06,,"{""type"": ""manual""}",Pending
+PSA000008,Education,Girls who finish secondary school earn more as adults.,,,Scraped,2024-06-07,https://example.org/edu2,"{""type"": ""scraped""}",Pending
+PSA000009,Agriculture,Rotate your crops each season to keep the soil fertile.,,,Manual,2024-06-08,,"{""type"": ""manual""}",Pending
+PSA000010,Security,Keep a torch and a whistle near your bed at night.,,,Manual,2024-06-09,,"{""type"": ""manual""}",Pending

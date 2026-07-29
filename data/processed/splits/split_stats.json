@@ -6,31 +6,31 @@
     "test": 0.05
   },
   "sizes": {
-    "train": 12167,
-    "dev": 676,
-    "test": 676
+    "train": 6141,
+    "dev": 341,
+    "test": 341
   },
   "per_domain": {
     "train": {
-      "Health": 7789,
-      "Agriculture": 2169,
-      "Governance": 1248,
-      "Security": 588,
-      "Education": 373
+      "Health": 3550,
+      "Security": 856,
+      "Education": 746,
+      "Agriculture": 503,
+      "Governance": 486
     },
     "dev": {
-      "Health": 433,
-      "Agriculture": 120,
-      "Governance": 69,
-      "Security": 33,
-      "Education": 21
+      "Health": 197,
+      "Security": 48,
+      "Education": 41,
+      "Agriculture": 28,
+      "Governance": 27
     },
     "test": {
-      "Health": 433,
-      "Agriculture": 120,
-      "Governance": 69,
-      "Security": 33,
-      "Education": 21
+      "Health": 197,
+      "Security": 48,
+      "Education": 41,
+      "Agriculture": 28,
+      "Governance": 27
     }
   },
   "leakage_overlapping_keys": 0

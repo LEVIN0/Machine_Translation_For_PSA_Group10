@@ -1,0 +1,11 @@
+# Week 3 training stack (SPEC_WEEK3.md §1).
+# NOTE: Google Colab already ships torch — installing this file there is still
+# safe (pip will keep/upgrade as needed), but you can skip the torch line on Colab.
+torch>=2.0
+transformers>=4.40
+datasets>=2.18
+accelerate>=0.28
+sentencepiece>=0.1.99
+wandb>=0.16
+sacrebleu>=2.4
+protobuf>=3.20

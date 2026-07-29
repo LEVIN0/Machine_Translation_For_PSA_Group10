@@ -4,6 +4,7 @@
 Run from the project root:  python tests/test_smoke.py
 """
 
+import importlib.util
 import sys
 import tempfile
 from pathlib import Path
@@ -62,6 +63,11 @@ def test_schema():
 
 def test_clean():
     """Duplicate, too-short, and French-posing-as-English rows are removed."""
+    import SRC.cleaning as _cleaning
+    if _cleaning._ld_detect is None:
+        print("skip test_clean (langdetect not installed; language filter "
+              "degrades gracefully — install requirements to run fully)")
+        return
     df = pd.DataFrame([
         new_record(domain="Health",
                    english="Wash your hands with soap and clean water regularly."),
@@ -146,6 +152,14 @@ def main():
     test_eda_smoke()
     test_manual_import()
     test_run_week2_cli()
+    # Week 3 — discovered modules (each exposes run(); self-skipping when
+    # optional deps like torch/transformers/datasets are unavailable)
+    week3_dir = Path(__file__).parent
+    for mod_path in sorted(week3_dir.glob("test_week3_*.py")):
+        spec = importlib.util.spec_from_file_location(mod_path.stem, mod_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.run()
     print("\nALL SMOKE TESTS PASSED")
     return 0
 

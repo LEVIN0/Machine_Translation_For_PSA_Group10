@@ -1,0 +1,5 @@
+PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status
+PSA000011,Health,Cover your mouth with your elbow when you cough or sneeze.,Funika mdomo wako kwa kiwiko unapokohoa au kupiga chafya.,,TICO-19,2024-06-10,https://tico-19.github.io/,"{""type"": ""corpus""}",Validated
+PSA000012,Governance,Pay your market fees at the county office and keep the receipt.,Lipa ada yako ya soko ofisini kwa kaunti na uweke risiti.,,Scraped,2024-06-11,https://example.org/gov2,"{""type"": ""scraped""}",Pending
+PSA000013,Education,Reading to young children builds their vocabulary early.,,,Manual,2024-06-12,,"{""type"": ""manual""}",Pending
+PSA000014,Agriculture,Certified seeds give stronger seedlings and better yields.,,,Scraped,2024-06-13,https://example.org/agri1,"{""type"": ""scraped""}",Pending
