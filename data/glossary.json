@@ -1,0 +1,98 @@
+{
+  "harambee": {
+    "sw": "harambee",
+    "note": "Community fundraising/self-help tradition; Kenyan national motto. Keep untranslated."
+  },
+  "nyumba kumi": {
+    "sw": "nyumba kumi",
+    "note": "Community policing initiative (ten-household clusters); keep untranslated."
+  },
+  "baraza": {
+    "sw": "baraza",
+    "note": "Public community meeting, often convened by a chief; keep untranslated."
+  },
+  "matatu": {
+    "sw": "matatu",
+    "note": "Privately owned public-service minibus; keep untranslated."
+  },
+  "boda boda": {
+    "sw": "boda boda",
+    "note": "Motorcycle/bicycle taxi; keep untranslated."
+  },
+  "M-Pesa": {
+    "sw": "M-Pesa",
+    "note": "Safaricom mobile-money service; brand name, keep exact capitalization."
+  },
+  "chama": {
+    "sw": "chama",
+    "note": "Informal savings/investment group; keep untranslated."
+  },
+  "ugali": {
+    "sw": "ugali",
+    "note": "Stiff maize-meal staple food; keep untranslated."
+  },
+  "sukuma wiki": {
+    "sw": "sukuma wiki",
+    "note": "Collard greens (literally 'push the week'); keep untranslated."
+  },
+  "NHIF": {
+    "sw": "NHIF",
+    "note": "National Hospital Insurance Fund (being replaced by SHA); keep acronym."
+  },
+  "SHA": {
+    "sw": "SHA",
+    "note": "Social Health Authority, successor to NHIF (2024); keep acronym."
+  },
+  "KCSE": {
+    "sw": "KCSE",
+    "note": "Kenya Certificate of Secondary Education; keep acronym."
+  },
+  "bursary": {
+    "sw": "bursary",
+    "note": "County/CDF education grant; commonly kept as 'bursary' in Swahili text."
+  },
+  "huduma": {
+    "sw": "huduma",
+    "note": "'Service' — as in Huduma Centre one-stop government service centres."
+  },
+  "chief": {
+    "sw": "chifu",
+    "note": "Local administrator of a location; announcements often begin 'through the area chief'."
+  },
+  "county government": {
+    "sw": "serikali ya kaunti",
+    "note": "Devolved county-level administration (47 counties)."
+  },
+  "mama mboga": {
+    "sw": "mama mboga",
+    "note": "Informal vegetable vendor, usually a woman; keep untranslated."
+  },
+  "bodaboda stage": {
+    "sw": "stage ya boda boda",
+    "note": "Designated waiting/pickup point for motorcycle taxis."
+  },
+  "sacco": {
+    "sw": "sacco",
+    "note": "Savings and credit co-operative society; keep untranslated."
+  },
+  "ndengu": {
+    "sw": "ndengu",
+    "note": "Green grams (mung beans); keep untranslated."
+  },
+  "unga": {
+    "sw": "unga",
+    "note": "Maize flour (unga wa mahindi); central to food-price announcements."
+  },
+  "El Niño": {
+    "sw": "El Niño",
+    "note": "Climate phenomenon linked to heavy rains/flooding in Kenya; keep as-is."
+  },
+  "long rains": {
+    "sw": "mvua za masika",
+    "note": "March-May rainy season; standard Met Department term."
+  },
+  "short rains": {
+    "sw": "mvua za vuli",
+    "note": "October-December rainy season; standard Met Department term."
+  }
+}

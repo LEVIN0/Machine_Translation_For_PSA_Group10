@@ -8,12 +8,12 @@ import pandas as pd
 from .cleaning import clean
 from .collectors import collect_all
 from .config import DATASET_CSV, STATS_JSON, ensure_dirs
-from .corpora import import_tatoeba, import_tico19
+from .corpora import import_manual, import_tatoeba, import_tico19
 from .schema import COLUMNS, assign_ids, validate_schema
 
 
 def build(scrape=True, site_names=None, max_pages=None, use_tico=True,
-          use_tatoeba=True, tico_max=None, verbose=True):
+          use_tatoeba=True, tico_max=None, use_manual=True, verbose=True):
     """Build the Week 1 dataset and write DATASET_CSV + STATS_JSON.
 
     All source failures are non-fatal: a source that yields nothing simply
@@ -55,6 +55,16 @@ def build(scrape=True, site_names=None, max_pages=None, use_tico=True,
         if tatoeba:
             frames.append(pd.DataFrame(tatoeba))
         source_counts["tatoeba"] = len(tatoeba)
+
+    if use_manual:
+        try:
+            manual = import_manual(verbose=verbose)
+        except Exception as exc:
+            print(f"[build] WARNING: manual import failed ({exc}); continuing")
+            manual = []
+        if manual:
+            frames.append(pd.DataFrame(manual))
+        source_counts["manual"] = len(manual)
 
     if frames:
         df = pd.concat(frames, ignore_index=True)

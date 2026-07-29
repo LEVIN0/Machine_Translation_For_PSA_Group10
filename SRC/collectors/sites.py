@@ -225,6 +225,44 @@ SITES = [
         "content_selectors": ["article p", "main p", ".item-page p", "p"],
         "max_pages": 5,
     },
+
+    # --- Week 2 additions -----------------------------------------------------
+    {
+        "name": "dci_units",
+        "domain": "Security",  # crime prevention / public safety
+        "source": "Directorate of Criminal Investigations",
+        "start_urls": [
+            "https://www.dci.go.ke/anti-narcotics",
+            "https://www.dci.go.ke/counter-violent-extremism",
+            "https://www.dci.go.ke/anti-human-trafficking-and-child-protection-unit",
+        ],
+        "link_patterns": [],   # unit pages themselves are the content
+        "content_selectors": ["article p, article li", "main p, main li", "p"],
+        "max_pages": 10,
+        "verify_ssl": False,
+    },
+    {
+        "name": "covaw_news",
+        "domain": "Security",  # gender-based violence
+        "source": "COVAW (Coalition on Violence Against Women)",
+        "start_urls": ["https://covaw.or.ke/category/news-press-releases/"],
+        "link_patterns": [
+            r"covaw\.or\.ke/(?!about-us|category|events|end-fgm|contact|donate|"
+            r"wp-)[a-z0-9-]+/$"
+        ],
+        "content_selectors": ["article p", "main p", ".entry-content p", "p"],
+        "max_pages": 20,
+    },
+    {
+        "name": "kuccps_news",
+        "domain": "Education",
+        "source": "KUCCPS",
+        "start_urls": ["https://www.kuccps.net/", "https://www.kuccps.net/blogs-front-line"],
+        "link_patterns": [r"kuccps\.net/kuccps-[a-z0-9-]+"],
+        "content_selectors": ["article p", "main p", ".entry-content p", "p"],
+        "max_pages": 20,
+        "verify_ssl": False,
+    },
 ]
 
 _SITE_BY_NAME = {s["name"]: s for s in SITES}

@@ -136,8 +136,209 @@ def main():
     test_collector_verify_ssl()
     test_pagination_expansion()
     test_collector_caps_and_caption_filter()
+    # Week 2
+    test_preprocessing()
+    test_splits()
+    test_eda_smoke()
+    test_manual_import()
+    test_run_week2_cli()
     print("\nALL SMOKE TESTS PASSED")
     return 0
+
+
+
+
+# ---------------------------------------------------------------------------
+# Week 2 tests
+# ---------------------------------------------------------------------------
+
+def test_preprocessing():
+    """normalize_deep, tokenize counts, code-switch detection, glossary hits."""
+    from SRC.preprocessing import (codeswitch_ratio, glossary_hits,
+                                   is_codeswitched, load_glossary,
+                                   normalize_deep, tokenize, word_tokens)
+
+    # curly quotes/apostrophes -> ASCII, en/em dashes -> '-', whitespace collapsed
+    messy = "  “Don’t”  wash – hands — now  "
+    fixed = normalize_deep(messy)
+    assert fixed == '"Don\'t" wash - hands - now', fixed
+
+    toks = tokenize("Wash your hands, please!")
+    assert toks == ["wash", "your", "hands", ",", "please", "!"], toks
+    assert len(word_tokens("Wash your hands, please!")) == 4
+    assert tokenize("Don't") == ["don't"]
+
+    # mixed EN/SW sentence is detected; pure English is not
+    mixed = "We must all report the crime and the suspects kwa polisi sasa."
+    pure_en = "Please wash your hands with soap and clean water every day."
+    assert is_codeswitched(mixed)
+    assert codeswitch_ratio(mixed) > 0.15
+    assert not is_codeswitched(pure_en)
+    assert codeswitch_ratio("") == 0.0
+
+    glossary = load_glossary()
+    assert "harambee" in glossary, "glossary.json missing 'harambee'"
+    hits = glossary_hits("Join the Harambee fundraiser at the baraza today.",
+                         glossary)
+    assert "harambee" in hits and "baraza" in hits, hits
+    assert glossary_hits("Wash your hands with clean water.", glossary) == []
+
+    # preprocess_dataframe adds columns without touching originals
+    from SRC.preprocessing import preprocess_dataframe
+    df = pd.DataFrame([
+        new_record(domain="Health",
+                   english="Attend the harambee at the chief's baraza today."),
+        new_record(domain="Education",
+                   english="Enrol your child in school before the term begins.",
+                   kiswahili="Mwingize mtoto wako shuleni kabla ya muhula."),
+    ])
+    out = preprocess_dataframe(df, glossary=glossary)
+    for col in ("English_norm", "Kiswahili_norm", "tokens_en", "tokens_sw",
+                "codeswitch", "glossary_terms"):
+        assert col in out.columns, col
+    assert out.loc[0, "glossary_terms"]  # harambee + baraza
+    assert int(out.loc[1, "tokens_sw"]) > 0 and int(out.loc[0, "tokens_sw"]) == 0
+    assert list(out["English"]) == list(df["English"])  # originals untouched
+    print("ok  test_preprocessing")
+
+
+def test_splits():
+    """100 rows / 4 domains -> exact 90/5/5, stratified, no leakage, seeded."""
+    from SRC.splits import group_key, make_splits
+
+    domains = ["Health", "Education", "Agriculture", "Security"]
+    df = pd.DataFrame([
+        new_record(domain=domains[i % 4],
+                   english=f"Sample announcement number {i} for public awareness.")
+        for i in range(100)
+    ])
+    train, dev, test = make_splits(df, seed=42)
+    assert (len(train), len(dev), len(test)) == (90, 5, 5), \
+        (len(train), len(dev), len(test))
+    # stratified: every domain present in train
+    assert set(train["Domain"].unique()) == set(domains)
+    # zero group-key overlap between any pair of splits
+    keys = {name: set(split["English"].map(group_key))
+            for name, split in (("tr", train), ("dv", dev), ("te", test))}
+    assert not (keys["tr"] & keys["dv"] or keys["tr"] & keys["te"]
+                or keys["dv"] & keys["te"])
+    # reproducible with the same seed (identical English rows per split)
+    train2, dev2, test2 = make_splits(df, seed=42)
+    for a, b in ((train, train2), (dev, dev2), (test, test2)):
+        assert list(a["English"]) == list(b["English"])
+    print("ok  test_splits")
+
+
+def test_eda_smoke(tmp_out=None):
+    """compute_eda keys, six PNGs written, report contains 'Key observations'."""
+    from SRC.eda import compute_eda, make_figures, write_eda_report
+
+    tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_eda_"))
+    domains = ["Health", "Education", "Agriculture", "Security"]
+    df = pd.DataFrame([
+        new_record(domain=domains[i % 4],
+                   english=f"Public notice number {i} for every citizen today.",
+                   kiswahili=("Osha mikono yako kwa maji safi kila siku."
+                              if i % 3 == 0 else ""),
+                   source="WHO" if i % 2 else "NTSA")
+        for i in range(12)
+    ])
+    stats = compute_eda(df)
+    for key in ("rows_total", "per_domain", "per_source", "paired", "unpaired",
+                "length_en", "length_sw", "vocab_en", "vocab_sw",
+                "type_token_ratio_en", "type_token_ratio_sw",
+                "codeswitched_rows", "glossary_rows",
+                "missing_translation_share", "per_domain_mean_length"):
+        assert key in stats, key
+    assert stats["rows_total"] == 12 and stats["paired"] == 4
+    assert set(stats["length_en"]) == {"mean", "median", "min", "max"}
+
+    figures = make_figures(df, out_dir=tmp_out / "figures")
+    assert len(figures) == 6 and all(p.exists() and p.suffix == ".png"
+                                     for p in figures), figures
+
+    report = write_eda_report(stats, figures, out_path=tmp_out / "eda.md")
+    text = report.read_text(encoding="utf-8")
+    assert "Key observations" in text
+    assert "figures/domain_bar.png" in text  # relative figure embedding
+    print("ok  test_eda_smoke")
+
+
+def test_manual_import():
+    """Tiny CSV in data/manual/ -> schema-valid Team-written records; cleanup."""
+    from SRC.corpora.manual import import_manual
+    from SRC import config
+
+    manual_dir = Path(config.EXTERNAL_DIR).parent / "manual"
+    manual_dir.mkdir(parents=True, exist_ok=True)
+    probe = manual_dir / "zz_test_probe.csv"
+    probe.write_text(
+        "Domain,English,Kiswahili,Ekegusii,Notes\n"
+        "Health,\"Wash your hands with soap before eating.\",,,probe row\n"
+        "Education,\"Enrol your child in the nearest public school today.\",,,probe row\n"
+        "Space,\"Invalid domain rows are skipped entirely.\",,,bad row\n",
+        encoding="utf-8")
+    try:
+        records = import_manual(manual_dir=manual_dir, verbose=False)
+        assert len(records) == 2, f"expected 2 records, got {len(records)}"
+        assert all(r["Source"] == "Team-written" for r in records)
+        assert all(r["Status"] == "Pending" for r in records)
+        df = assign_ids(pd.DataFrame(records))
+        assert validate_schema(df) == [], validate_schema(df)
+        # missing directory -> warn + []
+        assert import_manual(manual_dir=manual_dir / "nope",
+                             verbose=False) == []
+    finally:
+        probe.unlink(missing_ok=True)
+    print("ok  test_manual_import")
+
+
+def test_run_week2_cli(tmp_out=None):
+    """Full run_week2 pipeline on a small synthetic CSV with redirected paths."""
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+    import run_week2
+    from SRC import config
+
+    tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_week2_"))
+    input_csv = tmp_out / "input.csv"
+    domains = ["Health", "Education", "Agriculture", "Security"]
+    df = pd.DataFrame([
+        new_record(domain=domains[i % 4],
+                   english=f"Public notice number {i} for every citizen today.",
+                   kiswahili=("Osha mikono yako kwa maji safi kila siku."
+                              if i % 3 == 0 else ""),
+                   source="WHO" if i % 2 else "NTSA")
+        for i in range(40)
+    ])
+    df = assign_ids(df)
+    df.to_csv(input_csv, index=False, encoding="utf-8")
+
+    orig = (config.PROCESSED_DIR, config.REPORTS_DIR, config.BASE_DIR)
+    config.PROCESSED_DIR = tmp_out / "processed"
+    config.REPORTS_DIR = tmp_out / "reports"
+    config.BASE_DIR = tmp_out
+    try:
+        rc = run_week2.main(["--input", str(input_csv), "--val-size", "12"])
+        assert rc == 0
+        assert (config.PROCESSED_DIR / "psa_preprocessed.csv").exists()
+        assert (config.PROCESSED_DIR / "splits" / "train.csv").exists()
+        assert (config.PROCESSED_DIR / "splits" / "dev.csv").exists()
+        assert (config.PROCESSED_DIR / "splits" / "test.csv").exists()
+        assert (config.PROCESSED_DIR / "splits" / "split_stats.json").exists()
+        assert (config.REPORTS_DIR / "week2_eda_report.md").exists()
+        figs = list((config.REPORTS_DIR / "figures").glob("*.png"))
+        assert len(figs) == 6, figs
+        val = config.BASE_DIR / "data" / "validation" / "validation_subset.csv"
+        assert val.exists()
+        val_df = pd.read_csv(val, dtype=str).fillna("")
+        assert len(val_df) == 12
+        for col in ("Reviewer", "Fluency_1to5", "Adequacy_1to5", "Issues",
+                    "Notes"):
+            assert col in val_df.columns, col
+        assert (config.BASE_DIR / "docs" / "validation_guide.md").exists()
+    finally:
+        config.PROCESSED_DIR, config.REPORTS_DIR, config.BASE_DIR = orig
+    print("ok  test_run_week2_cli")
 
 
 
