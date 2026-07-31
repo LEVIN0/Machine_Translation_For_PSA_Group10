@@ -12,8 +12,12 @@ Each row becomes a schema record with Source "Lecturer dataset
 (dholuo/somali keys omitted when empty; topic omitted when no [Tag] prefix).
 
 Non-negotiables:
-- Gold text is kept VERBATIM (including [Tag] prefixes and any mojibake) —
-  the tag is recorded in Metadata.topic, never stripped from the text.
+- Gold text is kept VERBATIM (including [Tag] prefixes) — the tag is
+  recorded in Metadata.topic, never stripped from the text. The ONE
+  exception: mojibake (UTF-8 misread as Windows-1252, in the issued file
+  sometimes three rounds deep, e.g. "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“" for an en-dash)
+  is repaired on import via cleaning.repair_mojibake — 173 English,
+  79 Kiswahili, 13 Ekegusii, 1 Dholuo and 1 Somali rows are affected.
 - Dedupe within the file on normalized English (keep first).
 - Rows with empty English are skipped with a warning.
 """
@@ -23,7 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..cleaning import normalize_text
+from ..cleaning import normalize_text, repair_mojibake
 from ..schema import new_record
 
 _SOURCE = "Lecturer dataset (PSA_KE_Final)"
@@ -49,8 +53,9 @@ def load_lecturer(csv_path: Path, verbose=True) -> list[dict]:
     seen = set()
     n_dupes = 0
     n_skipped = 0
+    n_repaired = 0
     for i, row in df.iterrows():
-        english = (row.get("English") or "").strip()
+        english = repair_mojibake((row.get("English") or "").strip())
         if not english:
             print(f"[lecturer] WARNING: row {i + 2} has empty English; skipped.")
             n_skipped += 1
@@ -61,14 +66,20 @@ def load_lecturer(csv_path: Path, verbose=True) -> list[dict]:
             continue
         seen.add(key)
 
+        kiswahili = repair_mojibake((row.get("Kiswahili") or "").strip())
+        ekegusii = repair_mojibake((row.get("Ekegusii") or "").strip())
+        dholuo = repair_mojibake((row.get("Dholuo") or "").strip())
+        somali = repair_mojibake((row.get("Somali") or "").strip())
+        n_repaired += sum(
+            repair_mojibake((row.get(c) or "")) != (row.get(c) or "")
+            for c in ("English", "Kiswahili", "Ekegusii", "Dholuo", "Somali"))
+
         metadata = {
             "type": "gold",
             "license": "lecturer-provided",
             "psa_class": "PSA",
             "lecturer_id": (row.get("PSA_Id") or "").strip(),
         }
-        dholuo = (row.get("Dholuo") or "").strip()
-        somali = (row.get("Somali") or "").strip()
         if dholuo:
             metadata["dholuo"] = dholuo
         if somali:
@@ -79,9 +90,9 @@ def load_lecturer(csv_path: Path, verbose=True) -> list[dict]:
 
         rec = new_record(
             domain=(row.get("Domain") or "").strip(),
-            english=english,  # verbatim, [Tag] prefix kept
-            kiswahili=(row.get("Kiswahili") or "").strip(),
-            ekegusii=(row.get("Ekegusii") or "").strip(),
+            english=english,  # mojibake-repaired; otherwise verbatim, [Tag] kept
+            kiswahili=kiswahili,
+            ekegusii=ekegusii,
             source=_SOURCE,
             url="",
             metadata=metadata,
@@ -92,5 +103,6 @@ def load_lecturer(csv_path: Path, verbose=True) -> list[dict]:
 
     if verbose:
         print(f"[lecturer] imported {len(records)} gold rows from {csv_path.name} "
-              f"({n_dupes} internal dupes collapsed, {n_skipped} empty skipped)")
+              f"({n_dupes} internal dupes collapsed, {n_skipped} empty skipped, "
+              f"{n_repaired} mojibake cells repaired)")
     return records

@@ -296,7 +296,10 @@ orphaned-continuation signals drop it.
 
 ### Data-quality note for the lecturer file
 
-195 of the 2,852 lecturer rows (6.8%) contain encoding artifacts (mojibake,
-e.g. mangled em-dashes "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“"). We kept the text verbatim as
-provided; the artifacts are mechanically fixable in a later pass if the
-lecturer confirms.
+~~195 of the 2,852 lecturer rows (6.8%) contain encoding artifacts~~
+**RESOLVED (Week 3):** the lecturer file's encoding artifacts (mojibake —
+UTF-8 misread as Windows-1252, up to three rounds deep, e.g. "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“"
+for an en-dash) are now **repaired on import** (`SRC/cleaning.py::repair_mojibake`,
+ftfy + residual-pattern mapping): 332 cells restored across English /
+Kiswahili / Ekegusii / Dholuo / Somali. One Ekegusii cell ("Ãtoma") is
+ambiguous and was left verbatim rather than guessed.

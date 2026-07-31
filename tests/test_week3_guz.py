@@ -99,6 +99,46 @@ def test_lecturer_loader():
     print("ok  test_lecturer_loader")
 
 
+def test_mojibake_repair(tmp_out=None):
+    """repair_mojibake: multi-round cp1252/UTF-8 mojibake -> original text."""
+    from SRC.cleaning import normalize_text, repair_mojibake
+    from SRC.corpora.lecturer import load_lecturer
+
+    original = "Schools close early – parents collect children NOW!"
+    round1 = original.encode("utf-8").decode("cp1252")
+    round3 = round1.encode("utf-8").decode("cp1252") \
+                   .encode("utf-8").decode("cp1252")
+    assert round1 != original and "Ã" not in round1  # sanity: corruption grew
+    assert "Ã" in round3
+    assert repair_mojibake(round1) == original
+    assert repair_mojibake(round3) == original
+    # clean text (incl. plain ASCII and Swahili) is untouched
+    for clean in ("Boil water before drinking.",
+                  "Chemsha maji kabla ya kunywa.",
+                  "Tancha amache mbee okunywa."):
+        assert repair_mojibake(clean) == clean
+    assert normalize_text("  Boil   water\tfirst ") == "Boil water first"
+    # residual patterns (chars substituted/lost before we ever saw the file)
+    assert repair_mojibake("Itâ€TMs okay") == "It’s okay"
+    assert repair_mojibake("bila malipo '¢'¬â€œ anzisha") == \
+        "bila malipo – anzisha"
+
+    # loader-level: corrupted English + Ekegusii cells are repaired on import
+    tmp = Path(tmp_out or tempfile.mkdtemp(prefix="psa_mojibake_"))
+    fixture = tmp / "lecturer_bad.csv"
+    bad_eng = "[Schools] Register now " + round3
+    bad_guz = "Andika omwana " + round1
+    fixture.write_text(
+        "PSA_Id,Domain,Class,English,Kiswahili,Ekegusii,Dholuo,Somali\n"
+        f'L9001,Education,PSA,"{bad_eng}",Andikisha mtoto.,"{bad_guz}",,\n',
+        encoding="utf-8")
+    records = load_lecturer(fixture, verbose=False)
+    assert len(records) == 1
+    assert records[0]["English"] == f"[Schools] Register now {original}"
+    assert records[0]["Ekegusii"] == f"Andika omwana {original}"
+    print("ok  test_mojibake_repair")
+
+
 # ---------------------------------------------------------------------------
 # 2. Remediation pipeline on a tiny synthetic dataset
 # ---------------------------------------------------------------------------
@@ -284,6 +324,7 @@ def test_build_train_dataset_guz(tmp_out=None):
 def run() -> int:
     """Run all remediation/guz tests; return 0 on success."""
     test_lecturer_loader()
+    test_mojibake_repair()
     test_remediate_pipeline()
     if _datasets_available():
         test_guz_pairs()

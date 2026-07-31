@@ -29,9 +29,56 @@ except ImportError:  # pragma: no cover - dependency listed in requirements
     LangDetectException = Exception
 
 
+_MOJIBAKE_MARKERS = ("Ã", "Â", "â€")
+
+# Residual corruption that survives byte-reversal (chars were substituted or
+# dropped before we ever saw the file — verified by inspection of
+# PSA_KE_Final.csv): broken dash sequences all stand for "–"; "â€TM" is a
+# curly apostrophe whose ™ was replaced by the literal letters "TM".
+_RESIDUAL_MOJIBAKE = (
+    ("âƒÂ¢Ã¢â€šÂ¬Ã¢â'¬Å\"", "–"),
+    ("'¢'¬â€œ", "–"),
+    ("¢â'¬â€œ", "–"),
+    ("'¬â€œ", "–"),
+    ("â€TM", "’"),
+)
+
+
+def repair_mojibake(s):
+    """Repair UTF-8-read-as-Windows-1252 mojibake (possibly several rounds
+    deep, e.g. "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“" -> "–").
+
+    Uses ftfy when installed; otherwise iteratively reverses cp1252-misread
+    rounds while the marker count keeps dropping (max 4 rounds). Text
+    without mojibake markers is returned unchanged.
+    """
+    text = str(s or "")
+    if not any(m in text for m in _MOJIBAKE_MARKERS):
+        return text
+    try:
+        from ftfy import fix_text
+        text = fix_text(text)
+    except ImportError:
+        def _score(t):
+            return sum(t.count(m) for m in _MOJIBAKE_MARKERS)
+
+        for _ in range(4):
+            try:
+                fixed = text.encode("cp1252").decode("utf-8")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                break
+            if _score(fixed) < _score(text):
+                text = fixed
+            else:
+                break
+    for bad, good in _RESIDUAL_MOJIBAKE:
+        text = text.replace(bad, good)
+    return text
+
+
 def normalize_text(s):
-    """Collapse all whitespace runs and strip."""
-    return " ".join(str(s or "").split()).strip()
+    """Repair mojibake, collapse all whitespace runs, and strip."""
+    return " ".join(repair_mojibake(s).split()).strip()
 
 
 def dedupe(df):
