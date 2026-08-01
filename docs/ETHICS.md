@@ -1,14 +1,14 @@
 # Ethics & Compliance — PSA Data Collection (Week 1)
 
 This project collects public web text for a university NLP course (DSA4020A).
-All collection is governed by the rules below; the code in `SRC/scraper.py`
+All collection is governed by the rules below; the code in `src/scraper.py`
 enforces them mechanically, not just by convention.
 
 ## 1. robots.txt compliance
 
 - Every URL is checked against its origin's `robots.txt` **before** fetching,
   via `urllib.robotparser.RobotFileParser` (`robots_allowed()` in
-  `SRC/scraper.py`).
+  `src/scraper.py`).
 - One `RobotFileParser` is **cached per origin** so we never hammer a site
   with repeated robots.txt downloads.
 - If a page is disallowed, the request is skipped and the block is printed
@@ -19,7 +19,7 @@ enforces them mechanically, not just by convention.
 ## 2. Rate limiting
 
 - `polite_get()` sleeps **2.0 seconds plus a random 0–1 s jitter** before
-  every single request (`REQUEST_DELAY = 2.0` in `SRC/config.py`).
+  every single request (`REQUEST_DELAY = 2.0` in `src/config.py`).
 - Requests carry a descriptive User-Agent:
   `PSA-Research-Bot/1.0 (university NLP student project)`.
 - 30-second timeouts; all network failures are non-fatal warnings — the
@@ -51,4 +51,4 @@ enforces them mechanically, not just by convention.
 
 - All output is for a supervised university course project; nothing is
   redistributed commercially. If any site owner objects, the corresponding
-  source config in `SRC/collectors/sites.py` will be removed on request.
+  source config in `src/collectors/sites.py` will be removed on request.

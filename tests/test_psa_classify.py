@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the FROZEN PSA framework classifier (SPEC_REMEDIATION.md §1/§5).
+"""Tests for the FROZEN PSA framework classifier (src/psa_classify.py).
 
 Plain asserts, no pytest required; offline, fast, no optional deps.
 Exposes run() which prints "ok  test_psa_classify" on success.
@@ -15,9 +15,9 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from SRC.psa_classify import classify_frame, classify_psa  # noqa: E402
+from src.psa_classify import classify_frame, classify_psa  # noqa: E402
 
-# Must-pass reference examples from SPEC_REMEDIATION.md §1.
+# Must-pass lecturer-calibrated reference examples.
 KEPT_PSA = [
     "If you believe you may be infected, call a hospital or local emergency "
     "medical services instead of going in person to avoid infecting others.",

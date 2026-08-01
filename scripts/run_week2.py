@@ -19,10 +19,10 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from SRC import config  # noqa: E402
-from SRC.eda import compute_eda, make_figures, write_eda_report  # noqa: E402
-from SRC.preprocessing import preprocess_dataframe  # noqa: E402
-from SRC.splits import make_splits, save_splits  # noqa: E402
+from src import config  # noqa: E402
+from src.eda import compute_eda, make_figures, write_eda_report  # noqa: E402
+from src.preprocessing import preprocess_dataframe  # noqa: E402
+from src.splits import make_splits, save_splits  # noqa: E402
 
 VALIDATION_EXTRA_COLUMNS = ["Reviewer", "Fluency_1to5", "Adequacy_1to5",
                             "Issues", "Notes"]

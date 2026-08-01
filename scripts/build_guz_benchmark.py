@@ -32,7 +32,8 @@ def main(splits_dir: Path = DEFAULT_SPLITS,
     test_csv = splits_dir / "test.csv"
     if not test_csv.is_file():
         print(f"build_guz_benchmark: ERROR split file not found: {test_csv}\n"
-              "  run the Week 2 pipeline (or scripts/remediate_dataset.py) first.",
+              "  run the Week 1 and Week 2 pipelines first "
+              "(scripts/run_week1.py, scripts/run_week2.py).",
               file=sys.stderr)
         return 1
 
@@ -45,6 +46,11 @@ def main(splits_dir: Path = DEFAULT_SPLITS,
 
     bench = df[["English", "Ekegusii"]].rename(
         columns={"English": "eng", "Ekegusii": "guz"})
+    # Canonical format is one pair per line: collapse any embedded newlines
+    # so no consumer (pandas, shell tools, sacrebleu-style readers) ever sees
+    # a quoted multi-line field.
+    for col in ("eng", "guz"):
+        bench[col] = bench[col].map(lambda s: " ".join(str(s).split()))
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "guz_test.tsv"
     bench.to_csv(out_path, sep="\t", index=False, encoding="utf-8")

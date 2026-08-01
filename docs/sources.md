@@ -11,12 +11,12 @@ per-source kept/dropped figures).
 
 | # | Source | Class | Rows | Notes |
 |---|--------|-------|-----:|-------|
-| 0 | Lecturer dataset (`data/external/PSA_KE_Final.csv`) | PSA (pre-classified) | 2,852 | 2,903 raw rows minus 8 internal duplicates and cleaning losses; EN/SW/**Ekegusii**/Dholuo/Somali; merged verbatim (`type:"gold"`, `Status="Validated"`); Dholuo/Somali preserved in Metadata. 195 rows (6.8%) carry mojibake from the source file (kept verbatim, flagged to lecturer). |
+| 0 | Lecturer dataset (`data/external/PSA_KE_Final.csv`) | PSA (pre-classified) | 2,852 | 2,903 raw rows minus 8 internal duplicates and cleaning losses; EN/SW/**Ekegusii**/Dholuo/Somali; merged verbatim (`type:"gold"`, `Status="Validated"`); text normalized on import (encoding repair, whitespace); Dholuo/Somali preserved in Metadata. |
 
 ## Web sources (scraped, then framework-audited)
 
-21 sources are configured in `SRC/collectors/sites.py`. The framework audit
-(`SRC/psa_classify.py`) kept only high-confidence PSA rows; deleted counts are
+21 sources are configured in `src/collectors/sites.py`. The framework audit
+(`src/psa_classify.py`) kept only high-confidence PSA rows; deleted counts are
 in `reports/framework_audit.md`.
 
 | # | Config name | Source | Domain | URL | Status | Rows |

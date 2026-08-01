@@ -1,6 +1,6 @@
 """Generic site collector driven by a per-site config dict.
 
-A site config (see SRC/collectors/sites.py) provides:
+A site config (see src/collectors/sites.py) provides:
     name               short identifier, e.g. "who_covid_qna"
     domain             one of config.DOMAINS (an alias like "Road Safety" is
                        mapped via DOMAIN_ALIAS, e.g. "Road Safety" -> "Security")

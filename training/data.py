@@ -11,8 +11,8 @@ Non-negotiables (spec §4):
   scripts/build_guz_benchmark.py) is EVALUATION-ONLY and never enters
   training; build_train_dataset raises if asked for few-shot guz pairs
   while the train split has no Ekegusii text.
-- Ekegusii comes exclusively from real PSA pairs (lecturer gold data,
-  remediated dataset). FLORES-200 was evaluated and dropped: the archive
+- Ekegusii comes exclusively from real PSA pairs (lecturer gold data in
+  the Week 1 dataset). FLORES-200 was evaluated and dropped: the archive
   has 204 languages and no guz_Latn, and NLLB-200's tokenizer has no
   guz_Latn token either — no off-the-shelf Ekegusii benchmark exists.
 - Seeded everything (seed=42 default).
@@ -99,7 +99,7 @@ def load_psa_pairs(splits_dir: Path, split: str, directions: list[str]):
     """Load PSA pairs from ``<splits_dir>/<split>.csv`` as a canonical Dataset.
 
     For en-sw / sw-en: keeps rows with Kiswahili != "" (and English != "").
-    For guz directions (SPEC_REMEDIATION §4): additionally emits pairs from
+    For guz directions: additionally emits pairs from
     rows with non-empty ``Ekegusii`` — en-guz (English->Ekegusii) for every
     such row, sw-guz (Kiswahili->Ekegusii) only when Kiswahili is non-empty.
     Domain is carried; provenance="psa" for all directions.

@@ -9,7 +9,7 @@ copy text from any website.
 `data/manual/<your_name>.csv`, fill in your rows (one sentence per row), and
 commit. Files named `*_template.csv` are examples and are skipped by the
 importer; every other `*.csv` in `data/manual/` is imported by
-`SRC/corpora/manual.py` during `build()`.
+`src/corpora/manual.py` during `build()`.
 
 ## Style rules
 
@@ -97,5 +97,5 @@ importer; every other `*.csv` in `data/manual/` is imported by
 
 - Add the Kiswahili column (team review: one native/fluent speaker checks all).
 - Keep the `Notes` column: sub-topic + author initials.
-- Run `python -c "from SRC.corpora.manual import import_manual; import_manual()"`
+- Run `python -c "from src.corpora.manual import import_manual; import_manual()"`
   to confirm your rows import cleanly before committing.

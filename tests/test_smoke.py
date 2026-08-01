@@ -15,10 +15,10 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from SRC import build_dataset, report as report_mod  # noqa: E402
-from SRC.cleaning import clean  # noqa: E402
-from SRC.corpora.tico19 import parse_tmx  # noqa: E402
-from SRC.schema import COLUMNS, assign_ids, new_record, validate_schema  # noqa: E402
+from src import build_dataset, report as report_mod  # noqa: E402
+from src.cleaning import clean  # noqa: E402
+from src.corpora.tico19 import parse_tmx  # noqa: E402
+from src.schema import COLUMNS, assign_ids, new_record, validate_schema  # noqa: E402
 
 FIXTURE_TMX = Path(__file__).parent / "fixtures" / "sample_en-sw.tmx"
 
@@ -63,7 +63,7 @@ def test_schema():
 
 def test_clean():
     """Duplicate, too-short, and French-posing-as-English rows are removed."""
-    import SRC.cleaning as _cleaning
+    import src.cleaning as _cleaning
     if _cleaning._ld_detect is None:
         print("skip test_clean (langdetect not installed; language filter "
               "degrades gracefully — install requirements to run fully)")
@@ -103,8 +103,10 @@ def test_full_build_and_report(tmp_out=None):
     orig_import = build_dataset.import_tico19
     orig_manual = build_dataset.import_manual
     orig_report_out = report_mod.REPORTS_DIR
+    orig_audit_out = build_dataset.REPORTS_DIR
     build_dataset.DATASET_CSV = csv_path
     build_dataset.STATS_JSON = stats_path
+    build_dataset.REPORTS_DIR = tmp_out
     build_dataset.import_tico19 = lambda **kw: orig_import(
         tmx_path=FIXTURE_TMX, verbose=False, **{k: v for k, v in kw.items()
                                                 if k != "verbose"})
@@ -112,7 +114,8 @@ def test_full_build_and_report(tmp_out=None):
     build_dataset.import_manual = lambda verbose=True: []
     report_mod.REPORTS_DIR = tmp_out
     try:
-        out = build_dataset.build(scrape=False, use_tatoeba=False, verbose=False)
+        out = build_dataset.build(scrape=False, use_tatoeba=False,
+                                  use_lecturer=False, verbose=False)
         assert out == csv_path and csv_path.exists()
 
         df = pd.read_csv(csv_path, dtype=str).fillna("")
@@ -131,6 +134,7 @@ def test_full_build_and_report(tmp_out=None):
     finally:
         build_dataset.DATASET_CSV = orig_csv
         build_dataset.STATS_JSON = orig_stats
+        build_dataset.REPORTS_DIR = orig_audit_out
         build_dataset.import_tico19 = orig_import
         build_dataset.import_manual = orig_manual
         report_mod.REPORTS_DIR = orig_report_out
@@ -172,7 +176,7 @@ def main():
 
 def test_preprocessing():
     """normalize_deep, tokenize counts, code-switch detection, glossary hits."""
-    from SRC.preprocessing import (codeswitch_ratio, glossary_hits,
+    from src.preprocessing import (codeswitch_ratio, glossary_hits,
                                    is_codeswitched, load_glossary,
                                    normalize_deep, tokenize, word_tokens)
 
@@ -202,7 +206,7 @@ def test_preprocessing():
     assert glossary_hits("Wash your hands with clean water.", glossary) == []
 
     # preprocess_dataframe adds columns without touching originals
-    from SRC.preprocessing import preprocess_dataframe
+    from src.preprocessing import preprocess_dataframe
     df = pd.DataFrame([
         new_record(domain="Health",
                    english="Attend the harambee at the chief's baraza today."),
@@ -222,7 +226,7 @@ def test_preprocessing():
 
 def test_splits():
     """100 rows / 4 domains -> exact 90/5/5, stratified, no leakage, seeded."""
-    from SRC.splits import group_key, make_splits
+    from src.splits import group_key, make_splits
 
     domains = ["Health", "Education", "Agriculture", "Security"]
     df = pd.DataFrame([
@@ -249,7 +253,7 @@ def test_splits():
 
 def test_eda_smoke(tmp_out=None):
     """compute_eda keys, six PNGs written, report contains 'Key observations'."""
-    from SRC.eda import compute_eda, make_figures, write_eda_report
+    from src.eda import compute_eda, make_figures, write_eda_report
 
     tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_eda_"))
     domains = ["Health", "Education", "Agriculture", "Security"]
@@ -288,8 +292,8 @@ def test_manual_import():
     Uses a temp dir so real submissions in data/manual/ never affect the
     count. Separately, any real submissions present must import cleanly.
     """
-    from SRC.corpora.manual import import_manual
-    from SRC import config
+    from src.corpora.manual import import_manual
+    from src import config
 
     manual_dir = Path(tempfile.mkdtemp(prefix="psa_manual_"))
     probe = manual_dir / "zz_test_probe.csv"
@@ -323,7 +327,7 @@ def test_run_week2_cli(tmp_out=None):
     """Full run_week2 pipeline on a small synthetic CSV with redirected paths."""
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
     import run_week2
-    from SRC import config
+    from src import config
 
     tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_week2_"))
     input_csv = tmp_out / "input.csv"
@@ -371,9 +375,9 @@ def test_run_week2_cli(tmp_out=None):
 
 def test_collector_verify_ssl():
     """Mocked scrape: verify_ssl defaults True and False passes through (no KeyError)."""
-    import SRC.collectors.base as base
+    import src.collectors.base as base
     from bs4 import BeautifulSoup
-    from SRC.collectors.sites import SITES
+    from src.collectors.sites import SITES
 
     calls = []
     def fake_get_soup(url, verify=True):
@@ -412,7 +416,7 @@ def test_collector_verify_ssl():
 
 def test_pagination_expansion():
     """Pagination templates are expanded and appended to start_urls."""
-    from SRC.collectors.base import SiteCollector
+    from src.collectors.base import SiteCollector
     cfg = {
         "name": "pag_test", "domain": "Health", "source": "T",
         "start_urls": ["https://x.go.ke/list"],
@@ -431,7 +435,7 @@ def test_pagination_expansion():
 
 def test_collector_caps_and_caption_filter():
     """max_records stops early; min_words and circled-C caption filter apply."""
-    import SRC.collectors.base as base
+    import src.collectors.base as base
     from bs4 import BeautifulSoup
     calls = []
     def fake_soup(url, verify=True):

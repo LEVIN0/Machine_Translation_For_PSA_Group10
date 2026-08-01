@@ -1,10 +1,11 @@
-# Framework audit — PSA classification remediation
+# Framework audit — PSA classification
 
-_Generated 2026-07-29T08:43:17+00:00 by `scripts/remediate_dataset.py`_
+_Generated 2026-07-29T08:43:17+00:00 by the framework-audit step of the Week 1
+build (`src/audit.py`, run via `scripts/run_week1.py`)_
 
 ## Methodology
 
-Every dataset row was audited against the lecturer's 4-step PSA framework (PSA FRAMEWORK.pdf) using the frozen, lecturer-calibrated scoring classifier in `SRC/psa_classify.py`. The classifier is a documented heuristic: directive/imperative signals, audience markers and call-to-action phrases add score; press-release, legal-notice, encyclopedic and connective-continuation signals subtract. Rows scoring >= 2 are PSA. Per the locked team decision, only rows with Metadata.type == "scraped" are eligible for deletion; TICO-19 (corpus), team-written (manual) and lecturer gold rows are exempt and kept whole, with their psa_class recorded in Metadata for analysis. Deleted scraped rows are removed entirely from the dataset.
+Every dataset row was audited against the lecturer's 4-step PSA framework (PSA FRAMEWORK.pdf) using the frozen, lecturer-calibrated scoring classifier in `src/psa_classify.py`. The classifier is a documented heuristic: directive/imperative signals, audience markers and call-to-action phrases add score; press-release, legal-notice, encyclopedic and connective-continuation signals subtract. Rows scoring >= 2 are PSA. Per the locked team decision, only rows with Metadata.type == "scraped" are eligible for deletion; TICO-19 (corpus), team-written (manual) and lecturer gold rows are exempt and kept whole, with their psa_class recorded in Metadata for analysis. Deleted scraped rows are removed entirely from the dataset.
 
 ## Kept / dropped per source (Metadata.type, audit phase)
 

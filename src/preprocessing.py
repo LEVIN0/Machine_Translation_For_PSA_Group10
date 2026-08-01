@@ -1,7 +1,7 @@
 """Week 2 preprocessing: deep normalization, tokenization, code-switching,
 and cultural-term glossary tagging.
 
-This module complements (does not replace) `SRC/cleaning.py`: cleaning
+This module complements (does not replace) `src/cleaning.py`: cleaning
 decides which rows survive; preprocessing annotates surviving rows with
 model-ready columns (`English_norm`, `Kiswahili_norm`, token counts,
 code-switch flags, glossary hits) WITHOUT altering the original columns.

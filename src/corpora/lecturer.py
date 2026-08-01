@@ -1,4 +1,4 @@
-"""Lecturer gold dataset loader (SPEC_REMEDIATION.md §2).
+"""Lecturer gold dataset loader.
 
 Reads ``PSA_KE_Final.csv`` — the lecturer-provided gold dataset (all rows
 Class=PSA) with columns

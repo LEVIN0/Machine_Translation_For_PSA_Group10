@@ -2,7 +2,7 @@ TICO-19 data directory
 =======================
 
 The pipeline downloads the English-Kiswahili TMX automatically on first use
-(SRC/corpora/tico19.py -> download_tmx). If the automatic download fails
+(src/corpora/tico19.py -> download_tmx). If the automatic download fails
 (e.g. restricted network), install the data manually:
 
 1. Download the translation memory:

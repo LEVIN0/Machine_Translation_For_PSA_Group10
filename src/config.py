@@ -1,6 +1,6 @@
 """Central configuration for the PSA Week 1 data collection package.
 
-Paths are defined relative to the project root (parent of this SRC package),
+Paths are defined relative to the project root (parent of this src package),
 so the package is portable — no hard-coded absolute paths.
 """
 

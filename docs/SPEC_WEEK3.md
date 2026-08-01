@@ -109,7 +109,7 @@ def build_train_dataset(cfg: TrainConfig, splits_dir: Path,
 TSV canonical format: header `eng\tguz`, UTF-8, one sentence pair per line.
 `scripts/build_guz_benchmark.py` reads `data/processed/splits/test.csv`,
 keeps rows with non-empty English AND Ekegusii, and writes
-`data/external/guz_benchmark/guz_test.tsv` (138 pairs on the remediated
+`data/external/guz_benchmark/guz_test.tsv` (138 pairs on the final
 dataset). Prints the pair count; missing split or zero pairs -> clear error,
 exit 1. The output is EVALUATION-ONLY.
 
@@ -283,10 +283,10 @@ run times on T4 (mt5-small ~20–30 min, nllb-600M ~35–50 min per 3-epoch run)
 OOM (halve batch + raise grad-accum), wandb offline mode, resuming from
 checkpoint-best, how to split the matrix across Colab sessions.
 
-## 7. Addendum — Ekegusii from PSA gold (remediation, supersedes §2.2 seed note)
+## 7. Addendum — Ekegusii from PSA gold (supersedes §2.2 seed note)
 
-Following the framework remediation (see SPEC_REMEDIATION.md), Ekegusii
-training pairs now come from **real PSA data** (lecturer gold dataset merged
+Following the framework audit (`reports/framework_audit.md`), Ekegusii
+training pairs come from **real PSA data** (lecturer gold dataset merged
 into `psa_parallel_week1.csv`), not from FLORES:
 
 - `TrainConfig.fewshot_guz` semantics changed (fields/defaults unchanged):
@@ -317,11 +317,10 @@ the original FLORES plan, and both failed:
 
 Consequences, now implemented:
 
-- `scripts/fetch_flores.py` was **replaced** by
-  `scripts/build_guz_benchmark.py`, which builds
+- `scripts/build_guz_benchmark.py` builds
   `data/external/guz_benchmark/guz_test.tsv` (138 eng–guz pairs) from our
-  own held-out test split. Eval specs were renamed `flores_*` →
-  `psa_test_en-guz` / `psa_test_guz-en`.
+  own held-out test split — there is no off-the-shelf benchmark to fetch.
+  Eval specs are `psa_test_en-guz` / `psa_test_guz-en`.
 - The FLORES dev seed loader was **removed** (`load_flores_seed`,
   `flores_dev_seed` provenance gone); `fewshot_guz` caps PSA-sourced guz
   train pairs, the only legitimate guz source.

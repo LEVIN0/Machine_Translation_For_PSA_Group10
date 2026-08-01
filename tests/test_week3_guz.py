@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Remediation + Ekegusii tests (SPEC_REMEDIATION.md §5).
+"""Framework audit + Ekegusii tests.
 
-Covers: lecturer gold loader (fixture CSV), the one-command remediation
-pipeline on a tiny synthetic dataset, and guz pair loading in training.data.
+Covers: the lecturer gold loader (fixture CSV), the PSA framework audit step
+(src/audit.py) on a tiny synthetic dataset, the full build pipeline with
+patched collectors, and guz pair loading in training.data.
 
 Plain asserts, no pytest required; offline, fast. Exposes run() which
 prints "ok  test_week3_guz" on success. Dataset-builder tests SKIP
@@ -20,7 +21,6 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 LECTURER_FIXTURE = FIXTURES / "lecturer_fixture.csv"
@@ -56,8 +56,8 @@ def _meta(cell):
 # ---------------------------------------------------------------------------
 
 def test_lecturer_loader():
-    from SRC.corpora.lecturer import load_lecturer
-    from SRC.schema import assign_ids, validate_schema
+    from src.corpora.lecturer import load_lecturer
+    from src.schema import assign_ids, validate_schema
 
     records = load_lecturer(LECTURER_FIXTURE, verbose=False)
     # fixture: 5 data rows, 1 internal dupe -> 4 records
@@ -101,8 +101,8 @@ def test_lecturer_loader():
 
 def test_mojibake_repair(tmp_out=None):
     """repair_mojibake: multi-round cp1252/UTF-8 mojibake -> original text."""
-    from SRC.cleaning import normalize_text, repair_mojibake
-    from SRC.corpora.lecturer import load_lecturer
+    from src.cleaning import normalize_text, repair_mojibake
+    from src.corpora.lecturer import load_lecturer
 
     original = "Schools close early – parents collect children NOW!"
     round1 = original.encode("utf-8").decode("cp1252")
@@ -140,113 +140,119 @@ def test_mojibake_repair(tmp_out=None):
 
 
 # ---------------------------------------------------------------------------
-# 2. Remediation pipeline on a tiny synthetic dataset
+# 2. Framework audit step (src/audit.py) on a tiny synthetic dataset
 # ---------------------------------------------------------------------------
 
-def _write_synthetic_dataset(csv_path: Path) -> list[str]:
-    """Write a tiny dataset CSV with scraped/corpus/manual/gold rows;
-    return the English texts expected to SURVIVE remediation."""
-    from SRC.schema import assign_ids, new_record
+_SCRAPED_PSA = "Wash your hands with soap and clean water daily."
+_SCRAPED_INFO = "However, the disease may present in many atypical forms."
+_SCRAPED_PRESS = "KRA wins case against Dubai firm in court"
+_CORPUS_INFO = "Chagas disease can be treated with benznidazole or nifurtimox."
+_MANUAL_PSA = "Enrol your child in the nearest public school today."
+_GOLD_ENCYC = "[Outbreak] Cholera is a disease caused by contaminated water."
 
-    scraped_psa = "Wash your hands with soap and clean water daily."
-    scraped_info = "However, the disease may present in many atypical forms."
-    scraped_press = "KRA wins case against Dubai firm in court"
-    corpus_info = "Chagas disease can be treated with benznidazole or nifurtimox."
-    manual_psa = "Enrol your child in the nearest public school today."
-    gold_encyc = "[Outbreak] Cholera is a disease caused by contaminated water."
-    df = pd.DataFrame([
-        new_record(domain="Health", english=scraped_psa, source="MOH Kenya",
+
+def _synthetic_records() -> list[dict]:
+    """Six rows across all four source types; the two scraped non-PSA rows
+    are the only ones the audit may delete."""
+    from src.schema import new_record
+
+    return [
+        new_record(domain="Health", english=_SCRAPED_PSA, source="MOH Kenya",
                    metadata={"type": "scraped", "tool": "requests+bs4"}),
-        new_record(domain="Health", english=scraped_info, source="HealthBlog",
+        new_record(domain="Health", english=_SCRAPED_INFO, source="HealthBlog",
                    metadata={"type": "scraped"}),
-        new_record(domain="Governance", english=scraped_press, source="NewsSite",
+        new_record(domain="Governance", english=_SCRAPED_PRESS, source="NewsSite",
                    metadata={"type": "scraped"}),
-        new_record(domain="Health", english=corpus_info, source="TICO-19",
+        new_record(domain="Health", english=_CORPUS_INFO, source="TICO-19",
                    kiswahili="Ugonjwa wa Chagas unaweza kutibiwa kwa dawa.",
                    metadata={"type": "corpus"}),
-        new_record(domain="Education", english=manual_psa, source="Team-written",
+        new_record(domain="Education", english=_MANUAL_PSA, source="Team-written",
                    metadata={"type": "manual", "license": "original work"}),
-        new_record(domain="Health", english=gold_encyc,
+        new_record(domain="Health", english=_GOLD_ENCYC,
                    source="Lecturer dataset (PSA_KE_Final)",
                    metadata={"type": "gold", "psa_class": "PSA"}),
-    ])
-    assign_ids(df).to_csv(csv_path, index=False, encoding="utf-8")
-    return [scraped_psa, corpus_info, manual_psa, gold_encyc]
+    ]
 
 
-def test_remediate_pipeline(tmp_out=None):
-    import remediate_dataset
-    from SRC import config
+def test_apply_framework_audit():
+    from src.audit import apply_framework_audit, render_audit_report
 
-    tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_remediate_"))
-    csv_path = tmp_out / "psa_parallel_week1.csv"
-    survivors = _write_synthetic_dataset(csv_path)
+    df = pd.DataFrame(_synthetic_records())
+    kept, info = apply_framework_audit(df, verbose=False)
 
-    orig_reports = config.REPORTS_DIR
-    config.REPORTS_DIR = tmp_out / "reports"
+    texts = set(kept["English"])
+    # scraped non-PSA rows deleted entirely
+    assert _SCRAPED_INFO not in texts
+    assert _SCRAPED_PRESS not in texts
+    # corpus/manual/gold rows EXEMPT (kept even when non-PSA)
+    for t in (_SCRAPED_PSA, _CORPUS_INFO, _MANUAL_PSA, _GOLD_ENCYC):
+        assert t in texts, f"exempt/PSA row missing: {t}"
+    assert info["rows_before"] == 6 and info["rows_after"] == 4
+    assert info["deleted_total"] == 2 and info["n_scraped"] == 3
+    assert info["class_distribution"]["PSA"] >= 2
+
+    # every kept row stamped with psa_class; surviving scraped row == PSA
+    metas = kept["Metadata"].map(_meta)
+    assert all("psa_class" in m for m in metas)
+    types = metas.map(lambda m: m.get("type", ""))
+    scraped_meta = metas[types == "scraped"].iloc[0]
+    assert scraped_meta["psa_class"] == "PSA", scraped_meta
+
+    # audit report renders the key sections and samples a deleted row
+    report = render_audit_report(info, cleaned=kept, lecturer_rows=0)
+    for needle in ("Framework audit", "Methodology", "DELETED",
+                   "Kept / dropped per source", "Totals"):
+        assert needle in report, needle
+    assert "KRA wins case" in report
+    print("ok  test_apply_framework_audit")
+
+
+def test_build_pipeline(tmp_out=None):
+    """Full build(): patched collector -> audit -> gold merge -> clean."""
+    import src.build_dataset as bd
+
+    tmp_out = Path(tmp_out or tempfile.mkdtemp(prefix="psa_build_"))
+    scraped_records = _synthetic_records()[:3]  # the three scraped rows
+
+    orig = (bd.DATASET_CSV, bd.STATS_JSON, bd.REPORTS_DIR, bd.collect_all)
+    bd.DATASET_CSV = tmp_out / "psa_parallel_week1.csv"
+    bd.STATS_JSON = tmp_out / "build_stats.json"
+    bd.REPORTS_DIR = tmp_out / "reports"
+    bd.collect_all = lambda names=None, max_pages=None, verbose=True: \
+        list(scraped_records)
     try:
-        rc = remediate_dataset.main([
-            "--lecturer", str(LECTURER_FIXTURE),
-            "--dataset", str(csv_path),
-        ])
-        assert rc == 0, "remediate_dataset.main must return 0"
-
+        csv_path = bd.build(scrape=True, use_tico=False, use_tatoeba=False,
+                            use_manual=False, lecturer_path=LECTURER_FIXTURE,
+                            verbose=False)
         out = pd.read_csv(csv_path, dtype=str).fillna("")
         texts = set(out["English"])
-        # scraped non-PSA rows deleted entirely
-        assert "However, the disease may present in many atypical forms." not in texts
-        assert "KRA wins case against Dubai firm in court" not in texts
-        # corpus/manual/gold rows EXEMPT (kept even when non-PSA)
-        for t in survivors:
-            assert t in texts, f"exempt/PSA row missing: {t}"
-        # lecturer gold merged (4 unique fixture rows) -> 4 + 4 = 8 rows
-        assert len(out) == 8, f"expected 8 rows, got {len(out)}"
-        # IDs re-assigned contiguously from PSA000001
-        assert list(out["PSA_ID"]) == [f"PSA{i + 1:06d}" for i in range(len(out))]
-
-        metas = out["Metadata"].map(_meta)
-        types = metas.map(lambda m: m.get("type", ""))
-        assert dict(types.value_counts()) == {
-            "gold": 5, "scraped": 1, "corpus": 1, "manual": 1}, \
-            dict(types.value_counts())
-        # every row stamped with psa_class; surviving scraped row == PSA
-        assert all("psa_class" in m for m in metas)
-        scraped_meta = metas[types == "scraped"].iloc[0]
-        assert scraped_meta["psa_class"] == "PSA", scraped_meta
+        assert _SCRAPED_INFO not in texts and _SCRAPED_PRESS not in texts
+        assert _SCRAPED_PSA in texts
+        # 1 surviving scraped row + 4 unique lecturer fixture rows
+        assert len(out) == 5, f"expected 5 rows, got {len(out)}"
+        assert list(out["PSA_ID"]) == [f"PSA{i + 1:06d}" for i in range(5)]
         # Ekegusii arrived via the lecturer merge (3 of 4 fixture rows)
         assert int((out["Ekegusii"].str.strip() != "").sum()) == 3
 
-        # audit report written
-        audit = tmp_out / "reports" / "framework_audit.md"
+        stats = json.loads(bd.STATS_JSON.read_text(encoding="utf-8"))
+        assert stats["output_rows"] == 5
+        assert stats["source_counts"]["scraped"] == 3
+        assert stats["source_counts"]["lecturer_gold"] == 4
+        assert stats["framework_audit"]["deleted_total"] == 2
+        assert stats["output_rows_per_type"] == {"gold": 4, "scraped": 1}, \
+            stats["output_rows_per_type"]
+
+        audit = bd.REPORTS_DIR / "framework_audit.md"
         assert audit.exists(), audit
         text = audit.read_text(encoding="utf-8")
         for needle in ("Framework audit", "Methodology", "DELETED",
-                       "Lecturer", "Ekegusii"):
+                       "Lecturer gold merge"):
             assert needle in text, needle
         assert "KRA wins case" in text  # deleted row sampled in the audit
-
-        # build_stats.json next to the dataset
-        stats = json.loads((tmp_out / "build_stats.json")
-                           .read_text(encoding="utf-8"))
-        assert stats["mode"] == "remediate"
-        assert stats["rows_before"] == 6 and stats["rows_after"] == 8
-        assert stats["deleted_per_source"] == {"scraped": 2}
-        assert stats["lecturer_rows"] == 4
-        assert stats["class_distribution"]["PSA"] >= 2
-
-        # --dry-run: CSV untouched, report + stats still written
-        before_bytes = csv_path.read_bytes()
-        rc = remediate_dataset.main([
-            "--lecturer", str(LECTURER_FIXTURE),
-            "--dataset", str(csv_path), "--dry-run",
-        ])
-        assert rc == 0
-        assert csv_path.read_bytes() == before_bytes, \
-            "dry-run must not modify the dataset CSV"
-        assert audit.exists() and (tmp_out / "build_stats.json").exists()
     finally:
-        config.REPORTS_DIR = orig_reports
-    print("ok  test_remediate_pipeline")
+        (bd.DATASET_CSV, bd.STATS_JSON, bd.REPORTS_DIR,
+         bd.collect_all) = orig
+    print("ok  test_build_pipeline")
 
 
 # ---------------------------------------------------------------------------
@@ -322,10 +328,11 @@ def test_build_train_dataset_guz(tmp_out=None):
 # ---------------------------------------------------------------------------
 
 def run() -> int:
-    """Run all remediation/guz tests; return 0 on success."""
+    """Run all audit/guz tests; return 0 on success."""
     test_lecturer_loader()
     test_mojibake_repair()
-    test_remediate_pipeline()
+    test_apply_framework_audit()
+    test_build_pipeline()
     if _datasets_available():
         test_guz_pairs()
         test_build_train_dataset_guz()

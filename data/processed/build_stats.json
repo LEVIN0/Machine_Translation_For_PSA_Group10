@@ -1,17 +1,29 @@
 {
-  "built_at": "2026-07-29T03:42:49.736732+00:00",
+  "built_at": "2026-07-29T08:43:17+00:00",
   "source_counts": {
-    "manual": 0
+    "scraped": 10365,
+    "tico19": 3004,
+    "tatoeba": 0,
+    "manual": 150,
+    "lecturer_gold": 2895
   },
-  "cleaning": {
-    "input": 0,
-    "after_empty": 0,
-    "after_fragments": 0,
-    "after_length": 0,
-    "after_dedupe": 0,
-    "after_lang": 0,
-    "output": 0,
-    "removed_total": 0
+  "framework_audit": {
+    "rows_before": 13519,
+    "rows_after": 3971,
+    "deleted_total": 9548,
+    "n_scraped": 10365,
+    "class_distribution": {
+      "Informational": 12243,
+      "PSA": 1168,
+      "PressRelease": 93,
+      "Legal": 15
+    }
   },
-  "output_rows": 0
+  "output_rows": 6823,
+  "output_rows_per_type": {
+    "corpus": 3004,
+    "gold": 2852,
+    "manual": 150,
+    "scraped": 817
+  }
 }

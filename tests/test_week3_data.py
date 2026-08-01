@@ -153,7 +153,7 @@ def test_build_guz_benchmark_script():
             "PSA_ID,Domain,English,Kiswahili,Ekegusii,Source,Date,URL,Metadata,Status\n"
             'P1,Health,Boil water.,Chemsha maji.,Tancha amache.,X,,,,Validated\n'
             'P2,Security,Lock the door.,Funga mlango.,,X,,,,Validated\n'
-            'P3,Education,Go to school.,Nenda shuleni.,Karia esomero.,X,,,,Validated\n',
+            'P3,Education,Go to school.,Nenda shuleni.,"Karia\nesomero.",X,,,,Validated\n',
             encoding="utf-8")
         out = tmp / "out"
         assert bgb.main(splits_dir=splits, out_dir=out) == 0
@@ -161,6 +161,9 @@ def test_build_guz_benchmark_script():
         assert tsv[0] == "eng\tguz"
         assert len(tsv) == 3, f"header + 2 guz pairs expected, got {len(tsv)}"
         assert "Boil water.\tTancha amache." in tsv
+        # one pair per line even when a source cell contains a newline
+        assert all(len(l.split("\t")) == 2 for l in tsv), tsv
+        assert "Go to school.\tKaria esomero." in tsv
 
         # missing test.csv -> exit code 1
         assert bgb.main(splits_dir=tmp / "nope", out_dir=out) == 1

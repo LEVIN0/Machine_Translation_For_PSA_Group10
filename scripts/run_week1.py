@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """CLI entry point for the Week 1 data collection pipeline.
 
+One command runs the full pipeline: scrape configured sources, import the
+TICO-19 / Tatoeba / team-written / lecturer-gold sources, audit every row
+against the PSA framework (deleting scraped rows that fail), clean, assign
+IDs, and write the dataset + build stats + framework audit report.
+
 Run from the project root:
-    python scripts/run_week1.py --no-scrape          # fast offline run
     python scripts/run_week1.py                      # full run with scraping
+    python scripts/run_week1.py --no-scrape          # fast offline run
 """
 
 import argparse
@@ -14,8 +19,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from SRC.build_dataset import build  # noqa: E402
-from SRC.report import generate_report  # noqa: E402
+from src.build_dataset import build  # noqa: E402
+from src.report import generate_report  # noqa: E402
 
 
 def parse_args(argv=None):
@@ -34,6 +39,13 @@ def parse_args(argv=None):
                         help="cap the number of TICO-19 pairs imported")
     parser.add_argument("--no-tatoeba", action="store_true",
                         help="skip the Tatoeba import")
+    parser.add_argument("--no-lecturer", action="store_true",
+                        help="skip the lecturer gold dataset merge")
+    parser.add_argument("--lecturer", type=Path, default=None,
+                        help="path to the lecturer gold CSV "
+                             "(default: data/external/PSA_KE_Final.csv)")
+    parser.add_argument("--no-audit", action="store_true",
+                        help="skip the PSA framework audit step")
     parser.add_argument("--report", dest="report", action="store_true",
                         default=True, help="generate the Week 1 report (default)")
     parser.add_argument("--no-report", dest="report", action="store_false",
@@ -54,6 +66,9 @@ def main(argv=None):
         use_tico=not args.no_tico,
         use_tatoeba=not args.no_tatoeba,
         tico_max=args.tico_max,
+        use_lecturer=not args.no_lecturer,
+        lecturer_path=args.lecturer,
+        run_audit=not args.no_audit,
     )
     if args.report:
         generate_report(csv_path=csv_path)

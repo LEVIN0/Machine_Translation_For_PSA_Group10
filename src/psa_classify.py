@@ -1,9 +1,10 @@
-"""PSA framework classifier — FROZEN (SPEC_REMEDIATION.md §1).
+"""PSA framework classifier — FROZEN.
 
 Scoring classifier calibrated against the lecturer's applied standard from
-"PSA FRAMEWORK.pdf". The regexes and scoring rules below are a frozen
-contract: do not tune them without updating SPEC_REMEDIATION.md and the
-must-pass reference examples in tests/test_psa_classify.py.
+"PSA FRAMEWORK.pdf" (methodology: reports/framework_audit.md). The regexes
+and scoring rules below are a frozen contract: do not tune them without
+updating the methodology documentation and the must-pass reference examples
+in tests/test_psa_classify.py.
 
 Scoring (all regexes Python ``re`` with ``re.I``):
     KEEP_SIG match +2; first word in IMPER_START +2;

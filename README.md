@@ -44,7 +44,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
   Ekegusii** — our transfer target now has real PSA training pairs.
 - Every row carries an auditable `psa_class` in its Metadata (PSA /
   PressRelease / Legal / Informational); 9,548 scraped rows that failed the
-  framework audit were deleted (see the Week 1 report addendum).
+  framework audit were deleted (see `reports/framework_audit.md`).
 - Train/dev/test splits (90/5/5, stratified by domain, seed 42, zero text
   leakage): **6,141 / 341 / 341** rows in `data/processed/splits/`.
 - A 500-row native-speaker validation subset is prepared in
@@ -56,13 +56,14 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 ## Repository structure
 
 ```
-├── SRC/
+├── src/
 │   ├── config.py            # paths, domains, languages (en / sw / guz), scraping settings
 │   ├── schema.py            # the dataset schema — single source of truth
 │   ├── scraper.py           # robots.txt handling + polite (rate-limited) fetching
-│   ├── cleaning.py          # dedup, language detection, fragment & relevance filtering
+│   ├── cleaning.py          # text normalization, dedup, language detection, filtering
 │   ├── psa_classify.py      # lecturer-calibrated PSA framework classifier
-│   ├── build_dataset.py     # merge all sources → clean → assign IDs → CSV + stats
+│   ├── audit.py             # framework audit: classify, stamp, drop scraped non-PSA
+│   ├── build_dataset.py     # collect → audit → merge gold → clean → CSV + stats
 │   ├── report.py            # auto-generates the dataset stats report
 │   ├── preprocessing.py     # tokenization, normalization, code-switch & glossary tagging
 │   ├── eda.py               # dataset statistics + 6 EDA figures + auto EDA report
@@ -84,10 +85,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── inference.py         # MTTranslator (EN/SW/guz) + demo PSAs
 │   └── ablate.py            # ablation matrix + auto results table
 ├── scripts/
-│   ├── run_week1.py         # Week 1 pipeline: scrape + corpora → dataset
-│   ├── scrape_more.py       # incremental: append new sites / team-written PSAs
-│   ├── reclean.py           # re-apply cleaning to the existing CSV (no rescrape)
-│   ├── remediate_dataset.py # framework audit + lecturer gold merge (one command)
+│   ├── run_week1.py         # Week 1 pipeline: scrape + corpora → audit → gold → dataset
 │   ├── run_week2.py         # Week 2 pipeline: preprocess → EDA → splits → validation subset
 │   ├── build_guz_benchmark.py # build held-out Ekegusii benchmark from the test split
 │   ├── run_training.py      # Week 3: one training run with a named config
@@ -114,7 +112,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── validation_guide.md  # native-speaker validation guidelines
 │   └── week3_colab_guide.md # Colab training guide + GPU troubleshooting
 ├── reports/
-│   ├── week1_report.md      # Week 1 report (data collection & curation + audit addendum)
+│   ├── week1_report.md      # Week 1 report (data collection & curation)
 │   ├── week2_report.md      # Week 2 report (preprocessing & EDA)
 │   ├── week2_eda_report.md  # auto-generated EDA stats report
 │   ├── framework_audit.md   # PSA framework audit: per-source kept/dropped, method
@@ -137,7 +135,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 | Source | Publishing organisation |
 | Date | Publication or collection date (ISO) |
 | URL | Page the text was collected from |
-| Metadata | JSON provenance: type (scraped/corpus/manual), tool, license |
+| Metadata | JSON provenance: type (scraped/corpus/manual/gold), tool, license, psa_class |
 | Status | Validation status ("Pending" until native-speaker review) |
 
 ## Setup (Windows / VS Code)
@@ -163,23 +161,17 @@ new terminal activates automatically.
 ```powershell
 # --- Week 1: build the dataset ---
 
-# Full run: scrape all configured sources + TICO-19, then clean and report
+# Full run: scrape all configured sources + TICO-19 + team-written PSAs,
+# audit every row against the PSA framework, merge the lecturer gold
+# dataset, then clean and report
 # (takes ~15–25 minutes because of the polite 2s delay between requests)
 python scripts/run_week1.py
 
-# Fast offline run: TICO-19 only, no scraping
+# Fast offline run: corpora + gold only, no scraping
 python scripts/run_week1.py --no-scrape
 
 # Scrape only specific sources (handy when tuning one site)
 python scripts/run_week1.py --sites redcross_news,amref_kenya --max-pages 5
-
-# Incrementally append new sources and/or team-written PSAs to the
-# EXISTING dataset (does not rescrape everything):
-python scripts/scrape_more.py --sites nacada_drug_prev,dci_units
-python scripts/scrape_more.py                 # no --sites = ingest data/manual/ only
-
-# Re-apply cleaning rules to the existing dataset WITHOUT re-scraping
-python scripts/reclean.py
 
 # --- Week 2: preprocess, EDA, splits, validation subset ---
 python scripts/run_week2.py
@@ -231,11 +223,12 @@ Outputs:
    devolution), 10 pairs per sub-topic. Process documented in
    `docs/team_written_psa_kit.md`; submissions live in `data/manual/`.
 
-> **Framework audit.** After the lecturer issued the PSA Framework, every
-> scraped row was classified (`SRC/psa_classify.py`, lecturer-calibrated rules)
-> and 9,548 non-PSA scraped rows were deleted. One command reproduces it:
-> `python scripts/remediate_dataset.py --lecturer data/external/PSA_KE_Final.csv`
-> (see `reports/framework_audit.md` and the Week 1 report addendum).
+> **Framework audit.** Applying the lecturer's PSA Framework, every
+> collected row is classified (`src/psa_classify.py`, lecturer-calibrated
+> rules) as part of the Week 1 build, and scraped rows that fail the audit
+> are deleted — 9,548 in the canonical build. Corpus, team-written and
+> lecturer gold rows are exempt and kept whole. Full methodology and
+> per-source kept/dropped counts: `reports/framework_audit.md`.
 
 > **The Ekegusii benchmark is NOT training data.** `guz_test.tsv` is built
 > from the held-out test split and is evaluation-only; training on it would
@@ -245,7 +238,7 @@ Outputs:
 
 ## Adding a new scraping source
 
-Each source is a dict in `SRC/collectors/sites.py`:
+Each source is a dict in `src/collectors/sites.py`:
 
 ```python
 {
@@ -262,8 +255,8 @@ Each source is a dict in `SRC/collectors/sites.py`:
 }
 ```
 
-Then test with `python scripts/scrape_more.py --sites example_site` — the new
-rows are appended to the existing dataset and re-cleaned automatically.
+Then test with `python scripts/run_week1.py --sites example_site --max-pages 5`
+— new rows go through the same audit and cleaning as every other source.
 
 ## Ethics and licensing
 
@@ -284,8 +277,6 @@ rows are appended to the existing dataset and re-cleaned automatically.
   at Week 1 (was 85% mid-pipeline); Week 3 uses a domain-balanced training view.
 - 851 rows (12.5%) remain English-only (mostly TICO-19); Week 3
   back-translation will create synthetic pairs from vetted rows.
-- 195 lecturer rows (6.8%) contain encoding artifacts (mojibake) from the
-  source file; text is kept verbatim pending lecturer confirmation.
 - The PSA framework classifier is a documented heuristic — per-row decisions
   are auditable via `psa_class` in Metadata, but borderline cases exist.
 - Some Kenyan government sites publish advisories only as PDFs/images (e.g.
