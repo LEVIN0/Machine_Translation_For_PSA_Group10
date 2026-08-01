@@ -69,6 +69,40 @@ def expand_directions(direction: str) -> list[str]:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _patch_datasets_pickling() -> None:
+    """Compat shim for ``datasets`` fingerprint hashing (pyarrow>=21 / numpy>=2.4).
+
+    ``datasets`` fingerprints every new Dataset by pickling its state with dill
+    in *recurse* mode, which serialises whole module namespaces by value. That
+    dies on recent dependency stacks:
+
+    - pyarrow's ``MonthDayNano`` class claims ``__module__='builtins'`` but is
+      not registered there, so global-reference pickling fails;
+    - numpy's internal ``*_with_like`` dispatch helpers are tagged
+      ``__module__='numpy'`` without being identical to the public functions.
+
+    Fingerprinting does not need by-value semantics for our ephemeral in-memory
+    datasets, so force ``recurse=False`` (modules/functions pickle by import
+    reference). Idempotent; silently no-ops if datasets internals change.
+    """
+    try:
+        import datasets.utils._dill as _ddill
+    except Exception:
+        return
+    if getattr(_ddill.Pickler, "_psa_no_recurse", False):
+        return
+    _OrigPickler = _ddill.Pickler
+
+    class _NoRecursePickler(_OrigPickler):
+        _psa_no_recurse = True
+
+        def __init__(self, file, *args, **kwargs):
+            kwargs["recurse"] = False
+            super().__init__(file, *args, **kwargs)
+
+    _ddill.Pickler = _NoRecursePickler
+
+
 def _require_datasets():
     """Import HF datasets lazily; raise a helpful error if it is missing."""
     try:
@@ -77,6 +111,7 @@ def _require_datasets():
         raise ImportError(
             "training.data needs the 'datasets' package: pip install datasets"
         ) from exc
+    _patch_datasets_pickling()
     return Dataset, concatenate_datasets
 
 

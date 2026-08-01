@@ -28,7 +28,15 @@ def _resolve_report_to(cfg: TrainConfig) -> str:
     if os.environ.get("WANDB_API_KEY") or os.environ.get("WANDB_MODE") == "offline":
         os.environ.setdefault("WANDB_PROJECT", cfg.wandb_project)
         return "wandb"
-    print("[trainer] WANDB_API_KEY not set; falling back to report_to='none'")
+    try:  # an interactive `wandb login` (netrc) is usable too
+        import wandb
+
+        if wandb.Api().api_key:
+            os.environ.setdefault("WANDB_PROJECT", cfg.wandb_project)
+            return "wandb"
+    except Exception:
+        pass
+    print("[trainer] W&B not authenticated; falling back to report_to='none'")
     return "none"
 
 
