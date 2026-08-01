@@ -132,7 +132,8 @@ def test_no_heavy_imports():
 
 
 def test_report_to_fallback():
-    """§4: wandb requested but unusable (no key / not installed) -> 'none'."""
+    """§4: wandb requested but unusable (no key / not installed / not logged
+    in) -> 'none'; offline mode or a netrc `wandb login` -> 'wandb'."""
     from training.config import TrainConfig
     from training.trainer import _resolve_report_to
 
@@ -141,9 +142,29 @@ def test_report_to_fallback():
     try:
         cfg = TrainConfig(run_name="w1", model_key="mt5_small", report_to="wandb")
         try:
-            import wandb  # noqa: F401
-            # wandb installed: no API key and no offline mode -> fallback
-            assert _resolve_report_to(cfg) == "none"
+            import wandb
+
+            class _FakeApi:
+                """Deterministic stand-in for wandb.Api (netrc probe)."""
+
+                def __init__(self, *args, key=None, **kwargs):
+                    self._key = key
+
+                @property
+                def api_key(self):
+                    return self._key
+
+            orig_api = wandb.Api
+            try:
+                # not logged in (no netrc): fallback
+                wandb.Api = lambda *a, **k: _FakeApi(key=None)
+                assert _resolve_report_to(cfg) == "none"
+                # logged in via `wandb login` (netrc): usable
+                wandb.Api = lambda *a, **k: _FakeApi(key="secret")
+                assert _resolve_report_to(cfg) == "wandb"
+            finally:
+                wandb.Api = orig_api
+            # offline mode is usable regardless of login state
             os.environ["WANDB_MODE"] = "offline"
             assert _resolve_report_to(cfg) == "wandb"
         except ImportError:
