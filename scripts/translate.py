@@ -120,7 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         found = discover_checkpoint()
         if found is None:
             parser.error("no --checkpoint given and no runs/*/checkpoint-best "
-                         "found — train a model first (see notebooks/week3_colab.ipynb)")
+                         "found — train a model first (scripts/run_training.py; "
+                         "see docs/week3_kinesis_guide.md)")
         ckpt = str(found)
         print(f"[translate] auto-discovered checkpoint: {ckpt}")
 

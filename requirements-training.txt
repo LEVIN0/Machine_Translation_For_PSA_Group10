@@ -1,6 +1,8 @@
 # Week 3 training stack (SPEC_WEEK3.md §1).
-# NOTE: Google Colab already ships torch — installing this file there is still
-# safe (pip will keep/upgrade as needed), but you can skip the torch line on Colab.
+# NOTE: on fresh GPU containers (e.g. the Kinesis code-server image) install
+# this file together with requirements.txt inside the project venv — see
+# docs/week3_kinesis_guide.md §1. datasets>=5 needs the pickling shim that
+# training/data.py applies automatically; mT5 trains in bf16 (see config.py).
 torch>=2.0
 transformers>=4.40
 datasets>=2.18

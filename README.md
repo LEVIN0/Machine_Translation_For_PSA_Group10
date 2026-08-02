@@ -92,8 +92,6 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── run_ablations.py     # Week 3: run the ablation matrix
 │   ├── run_eval.py          # Week 3: evaluate checkpoint(s)
 │   └── translate.py         # Week 3: translation demo CLI (success criterion)
-├── notebooks/
-│   └── week3_colab.ipynb    # one-click Colab runbook (GPU check → train → demo)
 ├── tests/
 │   ├── fixtures/            # small TMX + synthetic CSV + benchmark TSV fixtures
 │   ├── test_smoke.py        # test suite (run before committing)
@@ -110,7 +108,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── ETHICS.md            # scraping ethics: robots.txt, rate limits, licensing
 │   ├── team_written_psa_kit.md  # how the team-written PSAs were produced
 │   ├── validation_guide.md  # native-speaker validation guidelines
-│   └── week3_colab_guide.md # Colab training guide + GPU troubleshooting
+│   └── week3_kinesis_guide.md # Navon Cloud/Kinesis GPU training runbook
 ├── reports/
 │   ├── week1_report.md      # Week 1 report (data collection & curation)
 │   ├── week2_report.md      # Week 2 report (preprocessing & EDA)
@@ -176,23 +174,26 @@ python scripts/run_week1.py --sites redcross_news,amref_kenya --max-pages 5
 # --- Week 2: preprocess, EDA, splits, validation subset ---
 python scripts/run_week2.py
 
-# --- Week 3: training (GPU needed — use notebooks/week3_colab.ipynb on Colab) ---
+# --- Week 3: training (GPU needed — we used a Navon Cloud/Kinesis A100) ---
 python scripts/build_guz_benchmark.py           # one-time Ekegusii benchmark build
 python scripts/run_training.py --model nllb_600m --run-name ft_nllb_base
-python scripts/run_ablations.py --matrix quick  # or: standard
+python scripts/run_ablations.py --matrix standard   # full ablation matrix
 python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
-python scripts/translate.py --demo              # translation demo (8 sample PSAs)
+python scripts/translate.py --checkpoint runs/ft_nllb_guz_all/checkpoint-best --demo
 
 # --- Any time: run the test suite ---
 python tests/test_smoke.py
 ```
 
-For Week 3 training we use **Google Colab (free GPU)** — open
-`notebooks/week3_colab.ipynb` and run top to bottom; the guide with expected
-runtimes and GPU troubleshooting is `docs/week3_colab_guide.md`. Experiments
-are tracked in **Weights & Biases** (project `psa-mt-group10`) with JSON-log
+For Week 3 training we used a **Navon Cloud / Kinesis Network A100 (80 GB)**
+node (USIU grid) — the full setup + training runbook, including GPU-request
+and persistence gotchas, is `docs/week3_kinesis_guide.md`. Experiments are
+tracked in **Weights & Biases** (project `psa-mt-group10`) with JSON-log
 fallback, so no run is ever lost. See `reports/week3_report.md` for
-hyperparameters, ablations and preliminary results.
+hyperparameters, ablations and results — headline: NLLB fine-tuned reaches
+**50.93 dev BLEU** (zero-shot: 5.57), and Ekegusii translation (a language
+neither model ever saw in pretraining) scales from chrF **17.2** with 50
+pairs to **27.9** with all ~2.5k PSA guz pairs.
 
 Outputs:
 

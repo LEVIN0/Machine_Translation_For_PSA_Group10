@@ -8,6 +8,16 @@ Decisions (locked with the team): training on **Google Colab free GPU**,
 tracking via **Weights & Biases**. Ekegusii data: **PSA gold pairs only** —
 the FLORES-200 seed/benchmark plan was dropped after verification (§8):
 FLORES-200 contains no `guz_Latn` and NLLB-200 has no `guz_Latn` token.
+
+> **Update (executed):** training actually ran on a **Navon Cloud / Kinesis
+> A100-80GB** node (USIU grid) via the CLI scripts below — the Colab
+> notebook (§5) was dropped and the Colab guide (§6) was replaced by
+> `docs/week3_kinesis_guide.md`. One further deviation: mT5 required **bf16**
+> (fp16 overflows to NaN gradients), so precision became a per-model
+> `MODEL_ZOO` default (§2.1). The back-translation run (`ft_nllb_aug`) was
+> skipped by the runner (no augmented CSV generated in time). An extra
+> `ft_nllb_guz_all` run (all PSA guz pairs) was added after the 200-pair run
+> exhibited donor-language confusion. Results: `reports/week3_report.md`.
 The Ekegusii benchmark is our own held-out test split (evaluation-only —
 project rule).
 
@@ -34,8 +44,8 @@ project rule).
 | `scripts/run_eval.py` | C | CLI: evaluate checkpoint(s) |
 | `scripts/translate.py` | C | CLI demo (success criterion) |
 | `scripts/run_ablations.py` | C | CLI: run the matrix |
-| `notebooks/week3_colab.ipynb` | C | one-click Colab runbook |
-| `docs/week3_colab_guide.md` | C | Colab guide incl. GPU troubleshooting (mid-week check-in item) |
+| ~~`notebooks/week3_colab.ipynb`~~ (dropped) | C | one-click Colab runbook |
+| `docs/week3_kinesis_guide.md` | C | Kinesis training guide incl. GPU troubleshooting (replaces the Colab guide) |
 | `tests/test_week3_eval.py` | C | metrics + inference + matrix tests (skip-graceful) |
 
 No two agents edit the same file. Shared contracts below are frozen — implement
@@ -267,7 +277,7 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
 - Existing tests/test_smoke.py behaviour unchanged; main agent adds discovery
   of `tests/test_week3_*.py` (each exposes `run()` printing "ok  <name>").
 
-## 5. Notebook (C) — `notebooks/week3_colab.ipynb` cells
+## 5. Notebook (C) — ~~`notebooks/week3_colab.ipynb`~~ (dropped: training ran via the CLI scripts on Kinesis; see `docs/week3_kinesis_guide.md`)
 1. GPU check (`torch.cuda.get_device_name`, assert T4-or-better else warning)
 2. `git clone` the team repo + `pip install -r requirements.txt -r requirements-training.txt`
 3. `wandb login` (env var or interactive) — with "skip if you want JSON-only logs" note
@@ -280,7 +290,7 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
 10. Zip `runs/` + results for download; cell to commit results back to the repo
 Keep markdown explanations student-voiced and brief; every cell rerunnable.
 
-## 6. Docs (C) — `docs/week3_colab_guide.md`
+## 6. Docs (C) — ~~`docs/week3_colab_guide.md`~~ (replaced by `docs/week3_kinesis_guide.md`)
 Prereqs (Google account, wandb account), step-by-step Colab usage, expected
 run times on T4 (mt5-small ~20–30 min, nllb-600M ~35–50 min per 3-epoch run),
 **GPU troubleshooting section** (mid-week check-in item): runtime disconnects,

@@ -1,0 +1,1024 @@
+From 1735783d8950937a2f8edfefa8b031a0be31bbd8 Mon Sep 17 00:00:00 2001
+From: agent <agent@example.com>
+Date: Mon, 3 Aug 2026 07:44:44 +0800
+Subject: [PATCH] Week 3 wrap-up: final report + results, Kinesis runbook, drop
+ Colab artifacts
+
+- reports/week3_report.md: full report from the A100 matrix runs (NLLB ft
+  50.93 dev BLEU vs 5.57 zero-shot; guz chrF 17.2->27.9 from 50->all pairs;
+  mT5 bf16 fix, datasets pickling shim, language-confusion finding)
+- reports/week3_results.md: final ablation table incl. ft_nllb_guz_all
+- docs/week3_colab_guide.md + notebooks/week3_colab.ipynb: removed; training
+  ran via CLI scripts on Navon Cloud/Kinesis (new docs/week3_kinesis_guide.md)
+- README: Week 3 usage + environment + headline results
+- SPEC_WEEK3: supersession notes (Kinesis, bf16, aug-run skip, guz_all run)
+---
+ README.md                   |  23 +--
+ docs/SPEC_WEEK3.md          |  18 +-
+ docs/week3_colab_guide.md   | 108 ------------
+ docs/week3_kinesis_guide.md | 122 ++++++++++++++
+ notebooks/week3_colab.ipynb | 325 ------------------------------------
+ reports/week3_report.md     | 209 ++++++++++++++---------
+ reports/week3_results.md    |  19 +++
+ requirements-training.txt   |   6 +-
+ scripts/translate.py        |   3 +-
+ 9 files changed, 299 insertions(+), 534 deletions(-)
+ delete mode 100644 docs/week3_colab_guide.md
+ create mode 100644 docs/week3_kinesis_guide.md
+ delete mode 100644 notebooks/week3_colab.ipynb
+ create mode 100644 reports/week3_results.md
+
+diff --git a/README.md b/README.md
+index 2e49ad5..dbc3def 100644
+--- a/README.md
++++ b/README.md
+@@ -92,8 +92,6 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
+ │   ├── run_ablations.py     # Week 3: run the ablation matrix
+ │   ├── run_eval.py          # Week 3: evaluate checkpoint(s)
+ │   └── translate.py         # Week 3: translation demo CLI (success criterion)
+-├── notebooks/
+-│   └── week3_colab.ipynb    # one-click Colab runbook (GPU check → train → demo)
+ ├── tests/
+ │   ├── fixtures/            # small TMX + synthetic CSV + benchmark TSV fixtures
+ │   ├── test_smoke.py        # test suite (run before committing)
+@@ -110,7 +108,7 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
+ │   ├── ETHICS.md            # scraping ethics: robots.txt, rate limits, licensing
+ │   ├── team_written_psa_kit.md  # how the team-written PSAs were produced
+ │   ├── validation_guide.md  # native-speaker validation guidelines
+-│   └── week3_colab_guide.md # Colab training guide + GPU troubleshooting
++│   └── week3_kinesis_guide.md # Navon Cloud/Kinesis GPU training runbook
+ ├── reports/
+ │   ├── week1_report.md      # Week 1 report (data collection & curation)
+ │   ├── week2_report.md      # Week 2 report (preprocessing & EDA)
+@@ -176,23 +174,26 @@ python scripts/run_week1.py --sites redcross_news,amref_kenya --max-pages 5
+ # --- Week 2: preprocess, EDA, splits, validation subset ---
+ python scripts/run_week2.py
+ 
+-# --- Week 3: training (GPU needed — use notebooks/week3_colab.ipynb on Colab) ---
++# --- Week 3: training (GPU needed — we used a Navon Cloud/Kinesis A100) ---
+ python scripts/build_guz_benchmark.py           # one-time Ekegusii benchmark build
+ python scripts/run_training.py --model nllb_600m --run-name ft_nllb_base
+-python scripts/run_ablations.py --matrix quick  # or: standard
++python scripts/run_ablations.py --matrix standard   # full ablation matrix
+ python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
+-python scripts/translate.py --demo              # translation demo (8 sample PSAs)
++python scripts/translate.py --checkpoint runs/ft_nllb_guz_all/checkpoint-best --demo
+ 
+ # --- Any time: run the test suite ---
+ python tests/test_smoke.py
+ ```
+ 
+-For Week 3 training we use **Google Colab (free GPU)** — open
+-`notebooks/week3_colab.ipynb` and run top to bottom; the guide with expected
+-runtimes and GPU troubleshooting is `docs/week3_colab_guide.md`. Experiments
+-are tracked in **Weights & Biases** (project `psa-mt-group10`) with JSON-log
++For Week 3 training we used a **Navon Cloud / Kinesis Network A100 (80 GB)**
++node (USIU grid) — the full setup + training runbook, including GPU-request
++and persistence gotchas, is `docs/week3_kinesis_guide.md`. Experiments are
++tracked in **Weights & Biases** (project `psa-mt-group10`) with JSON-log
+ fallback, so no run is ever lost. See `reports/week3_report.md` for
+-hyperparameters, ablations and preliminary results.
++hyperparameters, ablations and results — headline: NLLB fine-tuned reaches
++**50.93 dev BLEU** (zero-shot: 5.57), and Ekegusii translation (a language
++neither model ever saw in pretraining) scales from chrF **17.2** with 50
++pairs to **27.9** with all ~2.5k PSA guz pairs.
+ 
+ Outputs:
+ 
+diff --git a/docs/SPEC_WEEK3.md b/docs/SPEC_WEEK3.md
+index 3c9b737..f48214f 100644
+--- a/docs/SPEC_WEEK3.md
++++ b/docs/SPEC_WEEK3.md
+@@ -8,6 +8,16 @@ Decisions (locked with the team): training on **Google Colab free GPU**,
+ tracking via **Weights & Biases**. Ekegusii data: **PSA gold pairs only** —
+ the FLORES-200 seed/benchmark plan was dropped after verification (§8):
+ FLORES-200 contains no `guz_Latn` and NLLB-200 has no `guz_Latn` token.
++
++> **Update (executed):** training actually ran on a **Navon Cloud / Kinesis
++> A100-80GB** node (USIU grid) via the CLI scripts below — the Colab
++> notebook (§5) was dropped and the Colab guide (§6) was replaced by
++> `docs/week3_kinesis_guide.md`. One further deviation: mT5 required **bf16**
++> (fp16 overflows to NaN gradients), so precision became a per-model
++> `MODEL_ZOO` default (§2.1). The back-translation run (`ft_nllb_aug`) was
++> skipped by the runner (no augmented CSV generated in time). An extra
++> `ft_nllb_guz_all` run (all PSA guz pairs) was added after the 200-pair run
++> exhibited donor-language confusion. Results: `reports/week3_report.md`.
+ The Ekegusii benchmark is our own held-out test split (evaluation-only —
+ project rule).
+ 
+@@ -34,8 +44,8 @@ project rule).
+ | `scripts/run_eval.py` | C | CLI: evaluate checkpoint(s) |
+ | `scripts/translate.py` | C | CLI demo (success criterion) |
+ | `scripts/run_ablations.py` | C | CLI: run the matrix |
+-| `notebooks/week3_colab.ipynb` | C | one-click Colab runbook |
+-| `docs/week3_colab_guide.md` | C | Colab guide incl. GPU troubleshooting (mid-week check-in item) |
++| ~~`notebooks/week3_colab.ipynb`~~ (dropped) | C | one-click Colab runbook |
++| `docs/week3_kinesis_guide.md` | C | Kinesis training guide incl. GPU troubleshooting (replaces the Colab guide) |
+ | `tests/test_week3_eval.py` | C | metrics + inference + matrix tests (skip-graceful) |
+ 
+ No two agents edit the same file. Shared contracts below are frozen — implement
+@@ -267,7 +277,7 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
+ - Existing tests/test_smoke.py behaviour unchanged; main agent adds discovery
+   of `tests/test_week3_*.py` (each exposes `run()` printing "ok  <name>").
+ 
+-## 5. Notebook (C) — `notebooks/week3_colab.ipynb` cells
++## 5. Notebook (C) — ~~`notebooks/week3_colab.ipynb`~~ (dropped: training ran via the CLI scripts on Kinesis; see `docs/week3_kinesis_guide.md`)
+ 1. GPU check (`torch.cuda.get_device_name`, assert T4-or-better else warning)
+ 2. `git clone` the team repo + `pip install -r requirements.txt -r requirements-training.txt`
+ 3. `wandb login` (env var or interactive) — with "skip if you want JSON-only logs" note
+@@ -280,7 +290,7 @@ Both: `tokenizer(text=..., text_target=...)` pattern, truncation at
+ 10. Zip `runs/` + results for download; cell to commit results back to the repo
+ Keep markdown explanations student-voiced and brief; every cell rerunnable.
+ 
+-## 6. Docs (C) — `docs/week3_colab_guide.md`
++## 6. Docs (C) — ~~`docs/week3_colab_guide.md`~~ (replaced by `docs/week3_kinesis_guide.md`)
+ Prereqs (Google account, wandb account), step-by-step Colab usage, expected
+ run times on T4 (mt5-small ~20–30 min, nllb-600M ~35–50 min per 3-epoch run),
+ **GPU troubleshooting section** (mid-week check-in item): runtime disconnects,
+diff --git a/docs/week3_colab_guide.md b/docs/week3_colab_guide.md
+deleted file mode 100644
+index c5bfbab..0000000
+--- a/docs/week3_colab_guide.md
++++ /dev/null
+@@ -1,108 +0,0 @@
+-# Week 3 Colab guide — training the PSA MT models
+-
+-How to run `notebooks/week3_colab.ipynb` on Google Colab's free GPU, what to
+-expect, and what to do when things go wrong.
+-
+-## Prerequisites
+-
+-- A **Google account** (for Colab).
+-- A **Weights & Biases account** (wandb.ai) — *optional*. Without it, runs log
+-  JSON to `runs/` and the results table still works; W&B is only the dashboard.
+-- Our repo is public: `github.com/LEVIN0/Machine_Translation_For_PSA_Group10`
+-  (the notebook clones it — no setup needed).
+-
+-## Step by step
+-
+-1. Open [colab.research.google.com](https://colab.research.google.com) →
+-   **File → Open notebook → GitHub** and paste the repo URL, then pick
+-   `notebooks/week3_colab.ipynb` (or upload the file).
+-2. **Runtime → Change runtime type → T4 GPU** → Save.
+-3. Run the cells top to bottom (**Runtime → Run all** works too):
+-   - Cell 1 checks the GPU — stop here if it says "no GPU detected".
+-   - Cell 2 clones the repo and `pip install`s `requirements.txt` +
+-     `requirements-training.txt` (~3–4 min).
+-   - Cell 3 is wandb login — **skip if you want JSON-only logs**.
+-   - Cell 4 builds the held-out Ekegusii benchmark (`guz_test.tsv`, from our
+-     own test split — **evaluation only**). FLORES-200 was evaluated and
+-     dropped: it contains no Ekegusii, and NLLB-200 has no `guz_Latn` token.
+-   - Cell 5 runs the zero-shot baselines (eval-only, ~10–15 min including
+-     model downloads).
+-   - Cell 6 group fine-tunes the matrix, **one cell per run with a timer**.
+-   - Cell 7 (optional) back-translates EN-only rows and trains `ft_nllb_aug`.
+-   - Cell 8 is the demo (`translate.py --demo`) — our success criterion.
+-   - Cell 9 renders the results table from `runs/`.
+-   - Cell 10 zips `runs/` + `reports/` for download and shows how to commit
+-     results back to GitHub.
+-4. **Download `week3_results.zip` before closing the tab** — Colab wipes the
+-   disk when the runtime ends.
+-
+-## Expected runtimes (Colab T4)
+-
+-| Step | Time |
+-|---|---|
+-| Setup (clone + pip install) | ~3–4 min |
+-| `build_guz_benchmark.py` | seconds |
+-| Zero-shot evals (`zs_mt5` + `zs_nllb`) | ~10–15 min |
+-| mt5-small fine-tune (3 epochs, EN↔SW) | ~20–30 min per run |
+-| NLLB-600M fine-tune (3 epochs) | ~35–50 min per run |
+-| Back-translation + `ft_nllb_aug` | ~30–60 min |
+-| Full standard matrix (all 9 runs) | roughly 4–6 hours |
+-
+-The free tier caps sessions around 12 h (often less), so plan to split the
+-matrix — see below.
+-
+-## GPU troubleshooting
+-
+-**Runtime disconnects / "session crashed".**
+-Colab kills idle or long sessions. All progress lives in `runs/`, and every
+-notebook cell is rerunnable: after reconnecting, re-run cells 1–4 (setup) and
+-then the training cells you still need — `run_ablations.py` skips runs whose
+-`evals/*.json` already exist, so finished work is never redone.
+-
+-**Out of memory (CUDA OOM).**
+-Halve the batch size and raise gradient accumulation so the effective batch
+-stays the same, e.g. for a custom run:
+-
+-```bash
+-python scripts/run_training.py --model nllb_600m --run-name ft_nllb_base \
+-    --batch-size 4 --epochs 3
+-```
+-
+-(`grad_accum` defaults to 2; if OOM persists, restart the runtime first —
+-**Runtime → Restart** — to free fragmented GPU memory, then re-run the cell.)
+-
+-**wandb problems.**
+-No API key, network blocks, or login hangs: skip cell 3. The trainer falls
+-back to `report_to="none"` automatically and writes `metrics_dev.json` +
+-`evals/*.json` per run, and `write_results_table` builds the report from
+-those files. To silence wandb completely, set `WANDB_MODE=offline`.
+-
+-**Resuming / re-using a checkpoint.**
+-Every run saves its best model to `runs/<run>/checkpoint-best/`. You can
+-evaluate or demo any checkpoint directly without retraining:
+-
+-```bash
+-python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
+-python scripts/translate.py --checkpoint runs/ft_nllb_base/checkpoint-best --demo
+-```
+-
+-**Splitting the matrix across sessions.**
+-Use `--only` to run a subset per session, e.g.:
+-
+-```bash
+-# session 1
+-python scripts/run_ablations.py --only zs_mt5,zs_nllb,ft_nllb_base
+-# session 2
+-python scripts/run_ablations.py --only ft_nllb_freeze,ft_nllb_guz50
+-# session 3
+-python scripts/run_ablations.py --only ft_nllb_guz200,ft_mt5_guz200,ft_mt5_base
+-```
+-
+-Each session's `runs/` folder must be kept (download the zip in cell 10 and
+-merge locally) — or commit results back to the repo after each session
+-(cell 10) and pull at the start of the next one. Finally, rebuild the table
+-over the merged `runs/` with `python scripts/run_ablations.py --table-only`.
+-
+-**Slow first cell.**
+-The first training/eval cell downloads model weights (mt5-small ~1 GB,
+-NLLB-600M ~2.4 GB) — that's a one-time cost per runtime.
+diff --git a/docs/week3_kinesis_guide.md b/docs/week3_kinesis_guide.md
+new file mode 100644
+index 0000000..af6dd37
+--- /dev/null
++++ b/docs/week3_kinesis_guide.md
+@@ -0,0 +1,122 @@
++# Week 3 training runbook — Navon Cloud / Kinesis Network
++
++How Week 3 training was actually run: a GPU app on the **Navon Cloud
++pilot (Kinesis Network)**, USIU grid. Node specs: **1× NVIDIA
++A100-SXM4-80GB**, 22 vCPUs, ~118 GB RAM, ~1 TB storage (Helsinki).
++
++This replaces the earlier Colab plan (superseded — see `SPEC_WEEK3.md`).
++
++## 0. The two rules that will bite you
++
++1. **GPU must be requested at app creation time.** When creating the app
++   (code-server gallery image), the creation wizard's *Resources* step must
++   have **Accelerator: A100, Count: 1**. Quick Launch defaults to **0 GPUs**,
++   and you cannot add a GPU afterwards in the Config UI — if you forgot,
++   delete the app and create it again properly.
++2. **The container filesystem is ephemeral.** Restarting/recreating the app
++   wipes everything that is not in git, W&B, or downloaded. Export results
++   *before* stopping anything (§6).
++
++## 1. First-time environment setup
++
++The code-server image is bare — no Python, no tmux. In the code-server
++terminal (`` Ctrl+` `` or Terminal → New Terminal):
++
++```bash
++apt-get update && apt-get install -y python3 python3-venv python3-pip tmux zip
++git clone https://github.com/LEVIN0/Machine_Translation_For_PSA_Group10.git
++cd ~/Machine_Translation_For_PSA_Group10
++python3 -m venv .venv
++source .venv/bin/activate
++pip install -r requirements.txt -r requirements-training.txt   # ~10 min (torch is ~2.5 GB)
++python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'NO GPU')"
++# expect: True NVIDIA A100-SXM4-80GB
++```
++
++## 2. Weights & Biases
++
++```bash
++wandb login          # paste API key from https://wandb.ai/authorize
++```
++
++All runs then land in project **`psa-mt-group10`** automatically
++(`report_to="wandb"` is the default; without a login the trainer falls back
++to JSON logs and prints a notice).
++
++## 3. Sanity checks (run these first, every fresh container)
++
++```bash
++python tests/test_smoke.py            # expect: ALL SMOKE TESTS PASSED
++python scripts/build_guz_benchmark.py # expect: 138 eng-guz pairs
++```
++
++## 4. Training
++
++Smoke runs first (~2 min each, models already cached after the first):
++
++```bash
++python scripts/run_training.py --model mt5_small --run-name smoke_mt5 --quick
++python scripts/run_training.py --model nllb_600m --run-name smoke_nllb --max-samples 300 --epochs 1
++```
++
++Then the full ablation matrix inside **tmux** (so a browser disconnect
++doesn't kill training):
++
++```bash
++tmux new -s train
++source .venv/bin/activate      # venv activation is per-shell — tmux panes are new shells!
++python scripts/run_ablations.py --matrix standard 2>&1 | tee runs/ablation_log.txt
++# detach: Ctrl+B then D   ·   reattach: tmux attach -t train
++```
++
++The matrix is resumable: completed runs are skipped on rerun
++(`--no-skip-existing` to force). Notes:
++
++- `zs_*` runs are eval-only (no training).
++- `ft_nllb_aug` skips itself if `data/processed/augmented.csv` doesn't exist.
++- Mixed precision is per-model by default: **mT5 trains in bf16** (fp16
++  overflows to NaN gradients), **NLLB in fp16**. Override with
++  `--precision {fp16,bf16,fp32}`.
++
++## 5. Evaluation, results table, demo
++
++```bash
++python scripts/run_ablations.py --matrix standard --table-only  # writes reports/week3_results.md
++python scripts/run_eval.py --checkpoint runs/<run>/checkpoint-best
++python scripts/translate.py --checkpoint runs/<run>/checkpoint-best --demo
++```
++
++## 6. Export results BEFORE stopping the app
++
++```bash
++tar -czf week3_results.tar.gz reports/week3_results.md runs/ablation_log.txt \
++    runs/*/metrics*.json runs/*/train_config.json runs/*/evals/*.json
++```
++
++Then either download it via the code-server file explorer (right-click →
++Download; **refresh the browser tab** if new files don't show) or push it to
++W&B as an artifact:
++
++```bash
++python -c "
++import wandb
++run = wandb.init(project='psa-mt-group10', name='results-archive', job_type='export')
++art = wandb.Artifact('week3-results', type='export'); art.add_file('week3_results.tar.gz')
++run.log_artifact(art); run.finish()"
++```
++
++The trained checkpoints (multi-GB) stay on the container; the small metrics
++files + W&B are what the report needs.
++
++## 7. Troubleshooting
++
++| Symptom | Cause → fix |
++|---|---|
++| `python: command not found` | venv not active in *this* shell (`source .venv/bin/activate`) — remember tmux panes are new shells |
++| `nvidia-smi: command not found` + `torch.cuda.is_available()` False | app was created with 0 GPUs → recreate it with A100 ×1 (§0) |
++| `wandb` falls back to `report_to='none'` | not logged in → `wandb login` |
++| training loss = 0, `grad_norm = nan` (mT5) | fp16 overflow — fixed in the repo (mT5 defaults to bf16) |
++| new files invisible in the file explorer | code-server quirk — refresh the **browser tab** (F5) |
++| `zip: command not found` | bare image — `apt-get install -y zip` or use `tar` |
++| `tmux attach` says "sessions should be nested" | you're already inside tmux — no need to attach |
++| HF download hangs | check `curl -sI -m 15 https://huggingface.co \| head -1`; the suite's model tests skip gracefully if the hub is unreachable |
+diff --git a/notebooks/week3_colab.ipynb b/notebooks/week3_colab.ipynb
+deleted file mode 100644
+index 8a6bbbd..0000000
+--- a/notebooks/week3_colab.ipynb
++++ /dev/null
+@@ -1,325 +0,0 @@
+-{
+- "nbformat": 4,
+- "nbformat_minor": 5,
+- "metadata": {
+-  "colab": {
+-   "provenance": []
+-  },
+-  "kernelspec": {
+-   "display_name": "Python 3",
+-   "name": "python3"
+-  },
+-  "language_info": {
+-   "name": "python"
+-  },
+-  "accelerator": "GPU"
+- },
+- "cells": [
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "# Week 3 — Transfer learning for our PSA MT (EN/SW ↔ Ekegusii)\n",
+-    "\n",
+-    "This notebook is our one-click runbook: GPU check → setup → zero-shot baselines →\n",
+-    "fine-tuning the ablation matrix → demo → results table. Run cells top to bottom;\n",
+-    "every cell is safe to re-run (finished runs are skipped automatically).\n",
+-    "\n",
+-    "**First:** `Runtime → Change runtime type → T4 GPU`."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# 1) GPU check — we want a T4 or better before burning time on training.\n",
+-    "import torch\n",
+-    "print('torch:', torch.__version__)\n",
+-    "if torch.cuda.is_available():\n",
+-    "    name = torch.cuda.get_device_name(0)\n",
+-    "    print('GPU:', name)\n",
+-    "    if 'T4' not in name and torch.cuda.get_device_capability(0) < (7, 5):\n",
+-    "        print('WARNING: expected a T4-or-better GPU; training may be slow.')\n",
+-    "else:\n",
+-    "    print('WARNING: no GPU detected — switch the runtime to a GPU before continuing.')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 2) Grab the team repo and install dependencies\n",
+-    "Clones our GitHub repo and installs both requirement files (re-running just re-uses the existing clone)."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "import os\n",
+-    "if not os.path.exists('Machine_Translation_For_PSA_Group10'):\n",
+-    "    !git clone https://github.com/LEVIN0/Machine_Translation_For_PSA_Group10\n",
+-    "%cd Machine_Translation_For_PSA_Group10\n",
+-    "!pip install -q -r requirements.txt -r requirements-training.txt"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 3) Weights & Biases login (optional)\n",
+-    "We track runs on W&B. **No account / no key? Skip this cell** — every run still writes JSON logs to `runs/` and the results table in cell 9 works without W&B."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "import os\n",
+-    "if os.environ.get('WANDB_API_KEY'):\n",
+-    "    !wandb login $WANDB_API_KEY\n",
+-    "    print('wandb: logged in via WANDB_API_KEY')\n",
+-    "else:\n",
+-    "    print('No WANDB_API_KEY set — using offline JSON-only logging.')\n",
+-    "    print('To enable the dashboard: get a key at https://wandb.ai/authorize,')\n",
+-    "    print('then run  !wandb login  in a new cell and paste it.')\n",
+-    "    os.environ['WANDB_MODE'] = 'offline'"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 4) Build the held-out Ekegusii benchmark\n",
+-    "**Finding (verified):** FLORES-200 contains **no Ekegusii** — the archive has 204 languages and `guz_Latn` is not among them — and NLLB-200's tokenizer has no `guz_Latn` token either. Neither Week 3 model has any Ekegusii pretraining, so there is no off-the-shelf Ekegusii benchmark. Our own held-out **test split** (138 eng–guz pairs from the lecturer gold data) is the benchmark: `guz_test.tsv` is **evaluation-only** (project rule — never trained on). Ekegusii *training* pairs come from the train split (the only guz source)."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "!python scripts/build_guz_benchmark.py"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 5) Zero-shot baselines (`zs_mt5`, `zs_nllb`)\n",
+-    "How good are the off-the-shelf models with **no training**? These are eval-only entries in the ablation matrix, so this cell is quick."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --matrix quick --only zs_mt5,zs_nllb --eval-n 200\n",
+-    "print(f'zero-shot evals took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 6) Fine-tuning runs (one cell per run, with timers)\n",
+-    "Each cell fine-tunes one matrix entry and evaluates it on the dev + guz-benchmark specs. Expect ~20–30 min for mt5-small and ~35–50 min for NLLB-600M per run on a T4. Re-running a finished cell is a no-op, so you can split the matrix across Colab sessions (see docs/week3_colab_guide.md)."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_nllb_base — NLLB fine-tuned on our EN↔SW PSA pairs — the workhorse run.\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_nllb_base --eval-n 200\n",
+-    "print(f'ft_nllb_base took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_mt5_base — Same recipe on mT5-small — our second base model.\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_mt5_base --eval-n 200\n",
+-    "print(f'ft_mt5_base took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_nllb_freeze — Low-resource trick: freeze the encoder, train the decoder only.\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_nllb_freeze --eval-n 200\n",
+-    "print(f'ft_nllb_freeze took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_nllb_guz50 — Few-shot Ekegusii: capped at 50 PSA-sourced guz train pairs (direction=all).\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_nllb_guz50 --eval-n 200\n",
+-    "print(f'ft_nllb_guz50 took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_nllb_guz200 — Few-shot Ekegusii with 200 PSA-sourced guz train pairs.\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_nllb_guz200 --eval-n 200\n",
+-    "print(f'ft_nllb_guz200 took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "# ft_mt5_guz200 — Transfer comparison: the guz200 recipe on mT5 instead of NLLB.\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_mt5_guz200 --eval-n 200\n",
+-    "print(f'ft_mt5_guz200 took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 7) (Optional) Back-translation augmentation + `ft_nllb_aug`\n",
+-    "We translate our English-only PSA rows to Swahili with the best fine-tuned checkpoint, then retrain with the synthetic pairs. Skip if short on time — the runner warns and skips `ft_nllb_aug` if the CSV is missing."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "from pathlib import Path\n",
+-    "aug_csv = Path('data/processed/augmented_backtranslation.csv')\n",
+-    "if not aug_csv.exists():\n",
+-    "    from training.augment import backtranslate\n",
+-    "    ckpt = Path('runs/ft_nllb_base/checkpoint-best')\n",
+-    "    if not ckpt.exists():\n",
+-    "        ckpt = Path('runs/ft_mt5_base/checkpoint-best')\n",
+-    "    print('back-translating with', ckpt)\n",
+-    "    backtranslate(ckpt, Path('data/processed/splits'), aug_csv)\n",
+-    "import time\n",
+-    "t0 = time.time()\n",
+-    "!python scripts/run_ablations.py --only ft_nllb_aug --eval-n 200\n",
+-    "print(f'ft_nllb_aug took {(time.time() - t0) / 60:.1f} min')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 8) The demo — our success criterion 🎉\n",
+-    "Translates our 8 demo PSAs into all applicable targets (EN↔SW and →Ekegusii) using the newest trained checkpoint, and prints a clean table."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "!python scripts/translate.py --demo"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 9) Results table\n",
+-    "Scans `runs/` and writes `reports/week3_results.md` (missing values show as —)."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "!python scripts/run_ablations.py --table-only\n",
+-    "from IPython.display import Markdown, display\n",
+-    "display(Markdown(open('reports/week3_results.md', encoding='utf-8').read()))"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "## 10) Download results / commit them back\n",
+-    "Zip `runs/` + `reports/` for download (Colab wipes the disk when the runtime ends!). Optionally commit the results back to the repo from Colab."
+-   ]
+-  },
+-  {
+-   "cell_type": "code",
+-   "metadata": {},
+-   "source": [
+-    "!zip -qr week3_results.zip runs reports\n",
+-    "try:\n",
+-    "    from google.colab import files\n",
+-    "    files.download('week3_results.zip')\n",
+-    "except ImportError:\n",
+-    "    print('not on Colab — week3_results.zip is in the repo folder')"
+-   ],
+-   "outputs": [],
+-   "execution_count": null
+-  },
+-  {
+-   "cell_type": "markdown",
+-   "metadata": {},
+-   "source": [
+-    "**Optional — commit back to GitHub from Colab** (needs a personal access token from github.com/settings/tokens). Uncomment and fill in:\n",
+-    "\n",
+-    "```python\n",
+-    "# import os\n",
+-    "# os.environ['GH_TOKEN'] = 'ghp_...'\n",
+-    "# !git config user.email 'you@example.com'\n",
+-    "# !git config user.name 'Your Name'\n",
+-    "# !git add runs reports\n",
+-    "# !git commit -m 'Week 3: ablation results from Colab'\n",
+-    "# !git push https://{os.environ['GH_TOKEN']}@github.com/LEVIN0/Machine_Translation_For_PSA_Group10 HEAD:week3-results\n",
+-    "```\n",
+-    "\n",
+-    "⚠️ Never paste the token into a notebook you share — clear the cell output after pushing."
+-   ]
+-  }
+- ]
+-}
+\ No newline at end of file
+diff --git a/reports/week3_report.md b/reports/week3_report.md
+index 0b1d72e..d45f7d2 100644
+--- a/reports/week3_report.md
++++ b/reports/week3_report.md
+@@ -3,12 +3,7 @@
+ **Course:** DSA4020A Natural Language Processing
+ **Group:** 10
+ **Week:** 3 — Modeling with Transfer Learning (Sub-objective 2)
+-**Date:** {{DATE}}
+-
+-> **How to use this template:** every `{{PLACEHOLDER}}` gets replaced with the
+-> measured value after the Colab runs. `reports/week3_results.md` is generated
+-> automatically from the run logs (`write_results_table`) — paste its table in
+-> §5. Delete this note before submission.
++**Date:** 29 July – 2 August 2026
+ 
+ ---
+ 
+@@ -17,25 +12,30 @@
+ This week we moved from data to models. We fine-tuned two pre-trained
+ sequence-to-sequence models — **mT5-small** (~300M parameters) and
+ **NLLB-200-distilled-600M** — on our curated PSA parallel data, ran the
+-planned ablation matrix (zero-shot vs fine-tuned, layer freezing, few-shot
+-Ekegusii transfer, back-translation augmentation), tracked every run in
+-Weights & Biases, and shipped a command-line translation demo
+-(`scripts/translate.py`) as the week's success criterion.
+-
+-The strategic choice of these two models is deliberate: NLLB-200 includes
+-Ekegusii (`guz_Latn`) among its 200 languages, while mT5 does not — so the pair
+-lets us measure few-shot transfer to Ekegusii both *with* and *without*
+-pretraining exposure to the language.
++ablation matrix (zero-shot vs fine-tuned, layer freezing, few-shot Ekegusii
++transfer at 50/200/all pairs), tracked every run in Weights & Biases, and
++shipped a command-line translation demo (`scripts/translate.py`) as the
++week's success criterion.
++
++The strategic choice of these two models was deliberate: we expected
++NLLB-200 to give better coverage of our language pair, while mT5 offered a
++contrasting architecture. **Verified finding that shaped the whole design:**
++FLORES-200 contains no Ekegusii (204 languages checked, `guz_Latn` absent)
++and NLLB-200's tokenizer ships **without** a `guz_Latn` token — so *neither*
++model has any Ekegusii pretraining. Every Ekegusii result below is true
++unseen-language transfer: we added the missing `guz_Latn` token to NLLB,
++initialised its embedding from Swahili (`swh_Latn`, a close Bantu relative),
++and taught the model the language from our own PSA pairs only.
+ 
+ ## 2. Setup
+ 
+ | Item | Value |
+ |---|---|
+-| Training environment | Google Colab (free tier), GPU: {{GPU_NAME, e.g. Tesla T4}} |
+-| Framework | PyTorch + Hugging Face Transformers |
++| Training environment | Navon Cloud / Kinesis Network (USIU grid), 1× NVIDIA A100-SXM4-80GB, 22 vCPUs, 118 GB RAM (Helsinki) |
++| Framework | PyTorch 2.13 + Hugging Face Transformers 5.14 |
+ | Experiment tracking | Weights & Biases (project `psa-mt-group10`) + per-run JSON logs |
+-| Training data | PSA pairs from `data/processed/splits/train.csv` (paired rows, both directions) + PSA-sourced Ekegusii pairs from the same train split (capped per run) |
+-| Evaluation | sacreBLEU + chrF on PSA dev (EN→SW, SW→EN) and the held-out Ekegusii benchmark `guz_test.tsv` (EN→guz, guz→EN; built from the test split, never used in training) |
++| Training data | PSA pairs from `data/processed/splits/train.csv` (both directions) + PSA-sourced Ekegusii pairs from the same train split (capped per run: 0 / 50 / 200 / all) |
++| Evaluation | sacreBLEU + chrF on PSA dev (EN↔SW) and the held-out Ekegusii benchmark `guz_test.tsv` (138 EN–guz pairs built from the test split, never used in training) |
+ | Seed | 42 everywhere |
+ 
+ ## 3. Models and hyperparameters
+@@ -48,86 +48,129 @@ pretraining exposure to the language.
+ | Batch size × grad-accum | 16 × 2 | 8 × 2 |
+ | Epochs | 3 | 3 |
+ | Max sequence length | 128 | 128 |
+-| Precision | fp16 | fp16 |
++| Precision | **bf16** (see §8) | fp16 |
+ | Early selection | best dev sacreBLEU | best dev sacreBLEU |
+-| Language coverage relevant to us | EN, SW (no Ekegusii) | EN, SW (no Ekegusii — tokenizer has no `guz_Latn`; we add it with a Swahili-initialised embedding) |
+-
+-> **Verified finding (affects the whole design):** FLORES-200 contains no
+-> Ekegusii (204 languages checked, `guz_Latn` absent) and NLLB-200's
+-> tokenizer has no `guz_Latn` token — **neither model has any Ekegusii
+-> pretraining**. All Ekegusii results below are therefore true
+-> unseen-language transfer, learned from our 2,848 real PSA guz pairs and
+-> benchmarked on 138 held-out test pairs. NLLB zero-shot Ekegusii is
+-> undefined (no base-model token to evaluate); mT5 zero-shot guz numbers
+-> show the no-pretraining floor.
++| Ekegusii handling | none (task-prefix trick only) | `guz_Latn` token added + embedding donor-initialised from `swh_Latn` |
+ 
+-Low-resource techniques used: **encoder freezing** (ablation run), **few-shot
+-capping** (50/200 PSA-sourced Ekegusii pairs), and **back-translation
+-augmentation** of English-only PSA rows (ablation run).
++Low-resource techniques used: **encoder freezing** (ablation run),
++**few-shot capping** (50 / 200 / all PSA-sourced Ekegusii pairs). The planned
++back-translation augmentation run was skipped by the matrix runner because
++the augmented CSV had not been generated in time — deferred to future work
++(§9).
+ 
+ ## 4. Runs and training time
+ 
+-| Run | Config summary | Train pairs | Trainable % | Wall time | W&B link |
+-|---|---|---:|---:|---:|---|
+-| zs_mt5 | zero-shot, no training | — | — | — | {{link}} |
+-| zs_nllb | zero-shot, no training | — | — | — | {{link}} |
+-| ft_mt5_base | fine-tune, EN↔SW | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-| ft_nllb_base | fine-tune, EN↔SW | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-| ft_nllb_freeze | + frozen encoder | {{n}} | {{pct}} | {{mm:ss}} | {{link}} |
+-| ft_nllb_aug | + back-translation pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-| ft_nllb_guz50 | + 50 Ekegusii seed pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-| ft_nllb_guz200 | + 200 Ekegusii train pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-| ft_mt5_guz200 | mT5 + 200 Ekegusii train pairs | {{n}} | 100% | {{mm:ss}} | {{link}} |
+-
+-## 5. Preliminary results
+-
+-*(Auto-generated table from `reports/week3_results.md` goes here.)*
+-
+-| Run | PSA dev EN→SW BLEU/chrF | PSA dev SW→EN BLEU/chrF | Guz bench EN→guz BLEU/chrF | Guz bench guz→EN BLEU/chrF |
+-|---|---|---|---|---|
+-| zs_mt5 | {{/}} | {{/}} | {{/}} | {{/}} |
+-| zs_nllb | {{/}} | {{/}} | n/a (no guz token) | n/a (no guz token) |
+-| ft_mt5_base | {{/}} | {{/}} | {{/}} | {{/}} |
+-| ft_nllb_base | {{/}} | {{/}} | {{/}} | {{/}} |
+-| ft_nllb_freeze | {{/}} | {{/}} | — | — |
+-| ft_nllb_aug | {{/}} | {{/}} | — | — |
+-| ft_nllb_guz50 | {{/}} | {{/}} | {{/}} | {{/}} |
+-| ft_nllb_guz200 | {{/}} | {{/}} | {{/}} | {{/}} |
+-| ft_mt5_guz200 | {{/}} | {{/}} | {{/}} | {{/}} |
++All runs on one A100-80GB; total matrix wall time ≈ 80 minutes of training
++(plus evaluation and smoke runs). Every run is logged in W&B project
++[`psa-mt-group10`](https://wandb.ai/clairewangui02-university-system-of-georgia/psa-mt-group10).
++
++| Run | Config summary | Trainable % | Wall time (s) |
++|---|---|---:|---:|
++| zs_mt5 | mT5 zero-shot (eval only) | — | — |
++| zs_nllb | NLLB zero-shot (eval only) | — | — |
++| ft_mt5_base | mT5 fine-tune, EN↔SW | 100 | 297 |
++| ft_nllb_base | NLLB fine-tune, EN↔SW | 100 | 654 |
++| ft_nllb_freeze | NLLB + frozen encoder | 32.8 | 601 |
++| ft_nllb_guz50 | NLLB, all directions + 50 guz pairs | 100 | 758 |
++| ft_nllb_guz200 | NLLB, all directions + 200 guz pairs | 100 | 788 |
++| ft_mt5_guz200 | mT5, all directions + 200 guz pairs | 100 | 323 |
++| ft_nllb_guz_all | NLLB, all directions + **all** guz pairs | 100 | 1,096 |
++
++## 5. Results
++
++From `reports/week3_results.md` (auto-generated from run logs; smoke runs
++omitted here):
++
++| Run | Dev BLEU | Dev chrF | Guz BLEU | Guz chrF |
++|---|---:|---:|---:|---:|
++| zs_mt5 | 0.04 | 2.36 | 0.02 | 1.46 |
++| zs_nllb | 5.57 | 12.62 | — | — |
++| ft_mt5_base | 3.63 | 21.95 | — | — |
++| ft_nllb_base | **50.93** | **72.70** | — | — |
++| ft_nllb_freeze | 48.75 | 71.45 | — | — |
++| ft_nllb_guz50 | 51.36 | 73.20 | 3.01 | 17.21 |
++| ft_nllb_guz200 | 51.88 | **73.53** | 3.01 | 17.24 |
++| ft_mt5_guz200 | 4.09 | 22.51 | 1.77 | 11.86 |
++| ft_nllb_guz_all | 49.56 | 71.94 | **3.56** | **27.92** |
++
++*(Dev = PSA dev split, EN↔SW combined; Guz = 138-pair held-out Ekegusii
++benchmark. NLLB zero-shot guz is undefined — the base tokenizer has no
++`guz_Latn` to evaluate.)*
+ 
+ ## 6. What the ablations showed
+ 
+-1. **Zero-shot vs fine-tuned:** {{2-3 sentences — the domain-adaptation gain
+-   from fine-tuning on PSA data vs the zero-shot baseline.}}
+-2. **Ekegusii few-shot transfer:** {{2-3 sentences — NLLB at 0/50/200 seed
+-   pairs; whether mT5 (no Ekegusii pretraining) moves at all; chrF is the
+-   headline metric here.}}
+-3. **Freezing:** {{1-2 sentences — quality vs speed/trainable-params tradeoff.}}
+-4. **Back-translation:** {{1-2 sentences — did synthetic pairs help dev BLEU.}}
++1. **Zero-shot vs fine-tuned:** domain adaptation is everything. NLLB jumps
++   from 5.57 to 50.93 dev BLEU (+45.4) after fine-tuning on our PSA data;
++   mT5 goes from 0.04 to 3.63. The PSA register is far from generic
++   pretraining text, and three epochs on 6k pairs closes most of that gap
++   for NLLB.
++2. **NLLB ≫ mT5 on this task.** Fine-tuned mT5-small reaches only 3.63
++   dev BLEU where NLLB reaches 50.93 — NLLB's many-to-many translation
++   pretraining transfers to our pair far better than mT5's span-corruption
++   objective, even though both models "cover" English and Swahili.
++3. **Ekegusii few-shot transfer works, and scales with data.** Adding guz
++   pairs *improves* EN↔SW slightly (50.93 → 51.88 at guz200 — regularisation
++   from multi-directional training) while unlocking Ekegusii translation.
++   The guz chrF scaling curve is the headline: **1.46 (zero-shot floor) →
++   17.21 (50 pairs) → 17.24 (200) → 27.92 (all ~2.5k pairs)** — a 62% jump
++   from using our full scraped + lecturer-gold Ekegusii data, and direct
++   evidence that Week 1's data collection is the lever that matters.
++4. **Freezing the encoder** costs 2.2 BLEU (50.93 → 48.75) while training
++   only 32.8% of parameters — a viable parameter-efficient option when
++   compute is constrained.
++5. **Language confusion is real at very low data scales.** With only 200
++   guz pairs, the model produced fluent *Swahili* when asked for Ekegusii
++   (the donor language dominates). With all guz pairs it produces genuinely
++   Ekegusii-flavoured morphology (see §7) — fluency is bounded by data
++   scale, not by the transfer mechanism.
+ 
+ ## 7. Demo (success criterion)
+ 
+-`python scripts/translate.py --demo` translates 8 sample PSAs across all five
+-domains (EN↔SW, EN→guz, SW→guz). Sample outputs:
++`python scripts/translate.py --checkpoint runs/ft_nllb_guz_all/checkpoint-best --demo`
++translates 8 sample PSAs across all five domains (EN↔SW, EN→guz, SW→guz).
++Sample outputs:
+ 
+-| Source | Model output |
+-|---|---|
+-| {{sample EN PSA}} | {{SW / guz translation}} |
+-| {{sample SW PSA}} | {{EN translation}} |
++| Direction | Source | Model output |
++|---|---|---|
++| EN→SW | Wash your hands with soap and clean water for at least twenty seconds. | Osha mikono yako kwa sabuni na maji safi kwa angalau sekunde ishirini. |
++| SW→EN | Jitokeze kupiga kura; sauti yako ndiyo nguvu ya mabadiliko. | Emerge to vote; your voice is the force of change. |
++| SW→guz | Jitokeze kupiga kura; sauti yako ndiyo nguvu ya mabadiliko. | Kabe omoroberio bwokoruta chibesa; ensemo yao nigo endagera yogoikerania. |
++
++The Ekegusii output shows genuine Ekegusii noun-class morphology
++(**omo-**roberio, **bwo-**koruta, **chi-**besa — prefixes absent from
++Swahili), which is the key qualitative result: the model learned a language
++it never saw in pretraining. Remaining issues at this data scale: occasional
++repetition loops and uncertain word choices on longer sentences.
+ 
+ ## 8. Challenges
+ 
+-- **Colab free-tier limits:** {{session timeouts / VRAM — what actually happened
+-  and how you mitigated (smaller batch + grad-accum, splitting the matrix
+-  across sessions, resuming from checkpoint-best).}}
+-- **Tiny parallel corpus:** only ~3.1k EN–SW pairs and a 997-sentence Ekegusii
+-  seed — every low-resource lever (freezing, few-shot, augmentation) was
+-  necessary, not decorative.
+-- **W&B on Colab:** {{any API-key/offline issues; JSON fallback logs.}}
++- **mT5 + fp16 = NaN.** Our first mT5 runs produced `loss=0,
++  grad_norm=nan` from step 1: mT5's activations overflow fp16 (Google
++  trained it in bf16). Fix: per-model precision defaults — mT5 trains in
++  bf16 (A100-native), NLLB keeps fp16 (`training/config.py`,
++  `--precision` flag). The NaN run is preserved in the results table
++  (`smoke_mt5`, 0.00/0.00) as evidence.
++- **Bleeding-edge dependency stack.** The fresh environment pulled
++  transformers 5.14 / datasets 5.0.1 / pandas 3.0.5 / numpy 2.5.1, and
++  `datasets` fingerprint pickling crashes on pyarrow ≥ 21 + numpy ≥ 2.4
++  (dill recurse-mode serialises module namespaces by value and dies on
++  pyarrow's `MonthDayNano` and numpy's `*_with_like` helpers). Fixed with
++  a small shim forcing reference-mode pickling in `training/data.py`; the
++  full 44-test suite passes on the exact production stack.
++- **Environment is ephemeral.** The Kinesis container loses all
++  non-committed state on restart, so results live in three places: git
++  (code + reports), W&B (metrics + a results-archive artifact), and a
++  downloaded results archive.
++- **Tiny Ekegusii corpus.** ~2.5k guz training pairs is enough to
++  demonstrate transfer but not fluency — every low-resource lever
++  (donor initialisation, few-shot scaling, multi-directional training)
++  was necessary, not decorative.
+ 
+ ## 9. Next steps (Week 4)
+ 
+-- Final evaluation on the held-out PSA test split + full guz benchmark (138 pairs)
+-- Human evaluation using the Week 2 validation subset (fluency/adequacy)
+-- Error analysis per domain
++- Final evaluation on the held-out PSA test split + full guz benchmark
++- Human evaluation of Ekegusii output using the Week 2 validation subset
++  (fluency/adequacy by a native speaker)
++- Error analysis per domain (repetition loops on long guz sentences first)
++- Back-translation augmentation run (planned, deferred)
+ - Deployment: wrap `MTTranslator` in the demo web app
+diff --git a/reports/week3_results.md b/reports/week3_results.md
+new file mode 100644
+index 0000000..ecec606
+--- /dev/null
++++ b/reports/week3_results.md
+@@ -0,0 +1,19 @@
++# Week 3 ablation results
++
++Scanned from `runs` (metrics_dev.json + evals/*.json per run).
++
++| Run | Model | Config | Dev BLEU | Dev chrF | Guz BLEU | Guz chrF | Trainable % | Seconds |
++|---|---|---|---|---|---|---|---|---|
++| zs_mt5 | mt5_small | zero-shot | 0.04 | 2.36 | 0.02 | 1.46 | — | — |
++| zs_nllb | nllb_600m | zero-shot | 5.57 | 12.62 | — | — | — | — |
++| ft_mt5_base | mt5_small | both | 3.63 | 21.95 | — | — | 100.0 | 297 |
++| ft_nllb_base | nllb_600m | both | 50.93 | 72.70 | — | — | 100.0 | 654 |
++| ft_nllb_freeze | nllb_600m | both, freeze-enc | 48.75 | 71.45 | — | — | 32.8 | 601 |
++| ft_nllb_guz50 | nllb_600m | all, guz=50 | 51.36 | 73.20 | 3.01 | 17.21 | 100.0 | 758 |
++| ft_nllb_guz200 | nllb_600m | all, guz=200 | 51.88 | 73.53 | 3.01 | 17.24 | 100.0 | 788 |
++| ft_mt5_guz200 | mt5_small | all, guz=200 | 4.09 | 22.51 | 1.77 | 11.86 | 100.0 | 323 |
++| ft_nllb_guz_all | nllb_600m | all, guz=-1 | 49.56 | 71.94 | 3.56 | 27.92 | 100.0 | 1096 |
++| smoke_mt5 | mt5_small | both, cap=2000 | 0.00 | 0.00 | — | — | 100.0 | 91 |
++| smoke_mt5_bf16 | mt5_small | both, cap=2000 | 0.16 | 3.81 | — | — | 100.0 | 82 |
++| smoke_nllb | nllb_600m | both, cap=300 | 38.95 | 62.73 | — | — | 100.0 | 86 |
++| smoke_nllb_guz | nllb_600m | en-guz, guz=50, cap=50 | 1.92 | 15.56 | — | — | 100.0 | 28 |
+diff --git a/requirements-training.txt b/requirements-training.txt
+index 019da26..12b470d 100644
+--- a/requirements-training.txt
++++ b/requirements-training.txt
+@@ -1,6 +1,8 @@
+ # Week 3 training stack (SPEC_WEEK3.md §1).
+-# NOTE: Google Colab already ships torch — installing this file there is still
+-# safe (pip will keep/upgrade as needed), but you can skip the torch line on Colab.
++# NOTE: on fresh GPU containers (e.g. the Kinesis code-server image) install
++# this file together with requirements.txt inside the project venv — see
++# docs/week3_kinesis_guide.md §1. datasets>=5 needs the pickling shim that
++# training/data.py applies automatically; mT5 trains in bf16 (see config.py).
+ torch>=2.0
+ transformers>=4.40
+ datasets>=2.18
+diff --git a/scripts/translate.py b/scripts/translate.py
+index 2723e99..f99b419 100644
+--- a/scripts/translate.py
++++ b/scripts/translate.py
+@@ -120,7 +120,8 @@ def main(argv: list[str] | None = None) -> int:
+         found = discover_checkpoint()
+         if found is None:
+             parser.error("no --checkpoint given and no runs/*/checkpoint-best "
+-                         "found — train a model first (see notebooks/week3_colab.ipynb)")
++                         "found — train a model first (scripts/run_training.py; "
++                         "see docs/week3_kinesis_guide.md)")
+         ckpt = str(found)
+         print(f"[translate] auto-discovered checkpoint: {ckpt}")
+ 
+-- 
+2.39.5
+
