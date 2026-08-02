@@ -24,16 +24,20 @@ class ModelConfig:
     lr: float           # default learning rate
     batch_size: int     # default per-device batch size
     max_length: int = 128
+    precision: str = "fp16"  # "fp16" | "bf16" | "fp32" (GPU mixed precision;
+                             # mT5 needs bf16 — its activations overflow fp16
+                             # and produce NaN gradients)
 
 
 MODEL_ZOO: dict[str, ModelConfig] = {
     "mt5_small": ModelConfig(
         key="mt5_small", hf_name="google/mt5-small", family="mt5",
-        lr=1e-4, batch_size=16, max_length=128,
+        lr=1e-4, batch_size=16, max_length=128, precision="bf16",
     ),
     "nllb_600m": ModelConfig(
         key="nllb_600m", hf_name="facebook/nllb-200-distilled-600M",
         family="nllb", lr=5e-5, batch_size=8, max_length=128,
+        precision="fp16",
     ),
 }
 
@@ -56,7 +60,10 @@ class TrainConfig:
     batch_size: int | None = None
     grad_accum: int = 2
     max_samples: int | None = None   # cap training pairs (smoke/quick runs)
-    fp16: bool = True
+    fp16: bool = True     # legacy: superseded by `precision` below; kept so
+                          # old train_config.json files still load
+    precision: str | None = None     # None -> MODEL_ZOO default
+                                     # ("fp16" | "bf16" | "fp32")
     seed: int = 42
     output_root: str = "runs"
     report_to: str = "wandb"    # "wandb" | "none"
@@ -72,6 +79,7 @@ class TrainConfig:
         out = TrainConfig(**asdict(self))
         out.lr = self.lr if self.lr is not None else mc.lr
         out.batch_size = self.batch_size if self.batch_size is not None else mc.batch_size
+        out.precision = self.precision if self.precision is not None else mc.precision
         return out
 
     def to_json(self, path: str | Path) -> Path:

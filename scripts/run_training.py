@@ -44,6 +44,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="per-device batch size (default: MODEL_ZOO value)")
     p.add_argument("--max-samples", type=int, default=None,
                    help="cap training pairs (smoke/quick runs)")
+    p.add_argument("--precision", default=None,
+                   choices=["fp16", "bf16", "fp32"],
+                   help="GPU mixed precision (default: MODEL_ZOO value — "
+                        "bf16 for mT5, fp16 for NLLB)")
     p.add_argument("--report-to", default="wandb", choices=["wandb", "none"],
                    help="W&B if usable, else JSON-only logs")
     p.add_argument("--quick", action="store_true",
@@ -86,6 +90,7 @@ def main(argv: list[str] | None = None) -> Path:
         lr=args.lr,
         batch_size=args.batch_size,
         max_samples=max_samples,
+        precision=args.precision,
         report_to=args.report_to,
         output_root=args.output_root,
         seed=args.seed,

@@ -57,6 +57,7 @@ class ModelConfig:
     lr: float           # default lr: mt5_small 3e-4? NO -> 1e-4 ; nllb_600m 5e-5
     batch_size: int     # mt5_small 16 ; nllb_600m 8
     max_length: int = 128
+    precision: str = "fp16"  # mt5_small "bf16" (fp16 -> NaN grads) ; nllb_600m "fp16"
 
 MODEL_ZOO: dict[str, ModelConfig]  # the two entries above
 
@@ -74,12 +75,13 @@ class TrainConfig:
     batch_size: int | None = None
     grad_accum: int = 2
     max_samples: int | None = None   # cap training pairs (smoke/quick runs)
-    fp16: bool = True
+    fp16: bool = True     # legacy: superseded by `precision`; kept for old config files
+    precision: str | None = None     # None -> MODEL_ZOO default ("fp16"|"bf16"|"fp32")
     seed: int = 42
     output_root: str = "runs"
     report_to: str = "wandb"    # "wandb" | "none"
     wandb_project: str = "psa-mt-group10"
-    def resolved(self, zoo=MODEL_ZOO) -> "TrainConfig": ...  # fills lr/batch_size
+    def resolved(self, zoo=MODEL_ZOO) -> "TrainConfig": ...  # fills lr/batch_size/precision
     def to_json(self, path) / @classmethod from_json(path)
 ```
 Direction expansion (single place, in `data.py`): `"both"` -> `["en-sw","sw-en"]`;
@@ -145,7 +147,9 @@ Behaviour:
 2. Tokenize per family (see §3). HF `Seq2SeqTrainer`, `Seq2SeqTrainingArguments`:
    `output_dir=run_dir(cfg)`, `eval_strategy="epoch"`, `save_strategy="epoch"`,
    `load_best_model_at_end=True`, `metric_for_best_model="sacrebleu"`,
-   `predict_with_generate=True`, `fp16=cfg.fp16 and cuda available`,
+   `predict_with_generate=True`,
+   mixed precision from `cfg.precision` (resolved per model: mT5 `bf16` — fp16
+   overflows to NaN grads; NLLB `fp16`; bf16 falls back to fp32 if unsupported),
    `learning_rate`, `num_train_epochs=cfg.epochs`,
    `per_device_train_batch_size`, `gradient_accumulation_steps=cfg.grad_accum`,
    `report_to="wandb" if cfg.report_to=="wandb" and WANDB_API_KEY set else "none"`,

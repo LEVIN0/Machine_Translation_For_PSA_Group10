@@ -107,6 +107,13 @@ def test_config_contract():
                      batch_size=3).resolved()
     assert r2.lr == 9e-5 and r2.batch_size == 3
 
+    # §2.1 precision: mT5 must default to bf16 (fp16 overflows -> NaN grads),
+    # NLLB stays fp16; an explicit choice always wins.
+    assert TrainConfig(run_name="p1", model_key="mt5_small").resolved().precision == "bf16"
+    assert TrainConfig(run_name="p2", model_key="nllb_600m").resolved().precision == "fp16"
+    assert TrainConfig(run_name="p3", model_key="mt5_small",
+                       precision="fp32").resolved().precision == "fp32"
+
     with tempfile.TemporaryDirectory(prefix="psa_w3_") as tmp:
         p = Path(tmp) / "cfg.json"
         cfg2 = TrainConfig(run_name="c3", model_key="mt5_small",

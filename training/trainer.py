@@ -204,6 +204,18 @@ def train(cfg: TrainConfig,
 
     report_to = _resolve_report_to(cfg)
 
+    # Mixed precision per resolved config (§2.1): mT5 defaults to bf16 because
+    # its activations overflow fp16 (NaN grad_norm from step 1, zero loss);
+    # NLLB tolerates fp16. bf16 falls back to fp32 on GPUs without support.
+    precision = (cfg.precision or "fp32").lower()
+    cuda = torch.cuda.is_available()
+    bf16_ok = bool(cuda and torch.cuda.is_bf16_supported())
+    use_bf16 = precision == "bf16" and bf16_ok
+    use_fp16 = precision == "fp16" and cuda
+    if precision == "bf16" and not bf16_ok:
+        print("[trainer] bf16 requested but GPU has no bf16 support; using fp32")
+    print(f"[trainer] precision: {'bf16' if use_bf16 else 'fp16' if use_fp16 else 'fp32'}")
+
     arg_kwargs = dict(
         output_dir=str(out),
         eval_strategy="epoch",
@@ -212,7 +224,8 @@ def train(cfg: TrainConfig,
         metric_for_best_model="sacrebleu",
         greater_is_better=True,
         predict_with_generate=True,
-        fp16=bool(cfg.fp16 and torch.cuda.is_available()),
+        fp16=use_fp16,
+        bf16=use_bf16,
         learning_rate=cfg.lr,
         num_train_epochs=cfg.epochs,
         per_device_train_batch_size=cfg.batch_size,
