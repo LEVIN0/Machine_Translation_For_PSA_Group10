@@ -14,7 +14,7 @@ few-shot cross-lingual transfer learning on our curated PSA dataset.
 |--------|------|
 | Claire Mwarari | Scraping, site configuration & pipeline development |
 | Levin Ekuam | Corpus curation (TICO-19, Tatoeba) & cleaning/validation |
-| Paul | Data collection support, documentation & repo management |
+| Paul Mbuvi | Data collection support, documentation & repo management |
 
 ## Project timeline
 
