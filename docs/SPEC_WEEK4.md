@@ -62,9 +62,33 @@ model logic — this is purely a UI over the frozen Week 3 inference
 contract, so it stays correct as long as `MTTranslator` does.
 
 ## 5. Documentation — `reports/week4_report.md`
-
 Skeleton written with the final-eval, error-analysis and human-eval
 sections stubbed for the actual numbers (produced by running §1-§3 on the
 Kinesis node against the best Week 3 checkpoint, `ft_nllb_guz_all` per
 `reports/week3_results.md`). Fill in and remove the `TODO` markers once
 those scripts have been run.
+
+## 6. Ekegusii augmentation experiment (added post-eval)
+
+Motivated by the §1-§2 results (16.7% repetition-loop rate and one
+copy-through in en-guz; the Week 3 finding that guz quality scales with
+pair count): extend `training/augment.py` from eng->swa to **eng->guz**
+back-translation and retrain.
+
+- `training/augment.py::backtranslate(tgt="guz")`: train-split rows that
+  lack Ekegusii (English-only + EN-SW rows; 3,577 in the canonical split)
+  are translated eng->guz by `ft_nllb_guz_all/checkpoint-best` itself with
+  no_repeat_ngram_size=3; empty and copy-through generations are dropped.
+  Existing Kiswahili text is carried over, yielding sw-guz pairs too.
+  Synthetic rows are marked Source="Back-translation", Status="Synthetic",
+  PSA_ID suffixed `-BTG`. Train split only — the test split and the guz
+  benchmark stay untouched (no leakage).
+- `training/data.py::_load_augmented`: now builds all four directions
+  from an augmented CSV (was en-sw/sw-en only).
+- Retrain: `scripts/run_training.py --model nllb_600m --direction all
+  --fewshot-guz -1 --use-augmentation --augmented-csv
+  data/processed/augmented_guz.csv --run-name ft_nllb_guz_aug`.
+- Comparison: `scripts/run_week4_eval.py` against the new checkpoint,
+  reported side-by-side with `ft_nllb_guz_all` in
+  `reports/week4_report.md`. Evaluation decoding stays unassisted in both
+  (guardrails are a deployment-only choice, §4).

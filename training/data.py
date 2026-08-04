@@ -262,21 +262,32 @@ def build_train_dataset(cfg: TrainConfig, splits_dir: Path,
 
 
 def _load_augmented(augmented_csv: Path, directions: list[str]):
-    """Load back-translated rows (dataset-schema CSV) as canonical pairs."""
+    """Load back-translated rows (dataset-schema CSV) as canonical pairs.
+
+    Supports all four directions: en-sw/sw-en from the English+Kiswahili
+    columns (Week 3 eng->swa augmentation) and en-guz/sw-guz from rows with
+    the Ekegusii column filled (Week 4 eng->guz augmentation — existing
+    Kiswahili text is carried over by training/augment.py, so one CSV can
+    feed both).
+    """
     augmented_csv = Path(augmented_csv)
     if not augmented_csv.exists():
         raise FileNotFoundError(f"augmented csv not found: {augmented_csv}")
     df = pd.read_csv(augmented_csv, dtype=str, encoding="utf-8").fillna("")
-    df = df[(df["Kiswahili"].str.strip() != "") & (df["English"].str.strip() != "")]
+    cols = {
+        "en-sw": ("English", "Kiswahili", "eng", "swa"),
+        "sw-en": ("Kiswahili", "English", "swa", "eng"),
+        "en-guz": ("English", "Ekegusii", "eng", "guz"),
+        "sw-guz": ("Kiswahili", "Ekegusii", "swa", "guz"),
+    }
     rows: list[dict] = []
     for direction in directions:
-        if direction == "en-sw":
-            src_col, tgt_col, src_lang, tgt_lang = ("English", "Kiswahili", "eng", "swa")
-        elif direction == "sw-en":
-            src_col, tgt_col, src_lang, tgt_lang = ("Kiswahili", "English", "swa", "eng")
-        else:
+        if direction not in cols:
             continue
-        for _, r in df.iterrows():
+        src_col, tgt_col, src_lang, tgt_lang = cols[direction]
+        usable = df[(df[src_col].str.strip() != "")
+                    & (df[tgt_col].str.strip() != "")]
+        for _, r in usable.iterrows():
             rows.append({
                 "src_text": r[src_col], "tgt_text": r[tgt_col],
                 "src_lang": src_lang, "tgt_lang": tgt_lang,
