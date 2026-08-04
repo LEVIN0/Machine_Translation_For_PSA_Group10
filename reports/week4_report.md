@@ -122,7 +122,10 @@ python scripts/build_human_eval_sheet.py --n-per-domain 6
 (same checkpoint auto-discovery and demo-PSA table as
 `scripts/translate.py`). Two tabs: free-text translation between any two
 of {English, Kiswahili, Ekegusii}, and the 8-PSA demo across all five
-domains.
+domains. The demo decodes with `no_repeat_ngram_size=3` as a guardrail
+against the repetition-loop failure mode quantified in §2/§3 (noted in
+the app sidebar); the evaluation numbers above were generated without
+guardrails and remain the honest, unassisted scores.
 
 ```
 pip install -r requirements.txt -r requirements-training.txt -r requirements-app.txt

@@ -149,8 +149,17 @@ class MTTranslator:
     # -- public API ---------------------------------------------------------
 
     def translate(self, texts: list[str], src: str, tgt: str,
-                  max_length: int = 128, num_beams: int = 4) -> list[str]:
-        """Translate texts from src to tgt ({eng, swa, guz}) with batching."""
+                  max_length: int = 128, num_beams: int = 4,
+                  no_repeat_ngram_size: int | None = None) -> list[str]:
+        """Translate texts from src to tgt ({eng, swa, guz}) with batching.
+
+        ``no_repeat_ngram_size`` is an optional decoding guardrail against
+        the repetition-loop failure mode documented in reports/week3_report.md
+        and reports/week4_report.md (16.7% of en-guz test outputs). It is OFF
+        by default so evaluation numbers stay comparable with Week 3/4 runs;
+        the deployment demo (app.py) enables it (3 = kill true loops only,
+        keeping legitimate Bantu reduplication of short words).
+        """
         if src not in LANGS or tgt not in LANGS:
             raise ValueError(f"src/tgt must be in {sorted(LANGS)}, got {src}->{tgt}")
         if src == tgt:
@@ -167,6 +176,8 @@ class MTTranslator:
                 gen_kwargs = dict(max_length=max_length, num_beams=num_beams)
                 if forced_bos is not None:
                     gen_kwargs["forced_bos_token_id"] = forced_bos
+                if no_repeat_ngram_size:
+                    gen_kwargs["no_repeat_ngram_size"] = no_repeat_ngram_size
                 ids = self.model.generate(**enc, **gen_kwargs)
                 out.extend(tok for tok in self.tokenizer.batch_decode(
                     ids, skip_special_tokens=True))

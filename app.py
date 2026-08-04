@@ -80,6 +80,10 @@ st.sidebar.markdown("---")
 st.sidebar.caption(
     "Glossary terms (harambee, matatu, nyumba kumi, ...) are kept "
     "untranslated by design — see `data/glossary.json`.")
+st.sidebar.caption(
+    "Decoding uses no_repeat_ngram_size=3 as a guardrail against the "
+    "repetition-loop failure mode documented in reports/week4_report.md; "
+    "evaluation numbers in that report were generated without it.")
 
 tab_translate, tab_demo = st.tabs(["Translate", "Sample PSAs"])
 
@@ -96,7 +100,8 @@ with tab_translate:
     if st.button("Translate", type="primary",
                  disabled=(not text.strip() or src == tgt)):
         with st.spinner("Translating..."):
-            output = translator.translate([text], src=src, tgt=tgt)[0]
+            output = translator.translate([text], src=src, tgt=tgt,
+                                          no_repeat_ngram_size=3)[0]
         st.text_area(f"{lang_label(tgt)} translation", value=output, height=120)
 
 with tab_demo:
@@ -116,6 +121,7 @@ with tab_demo:
                 if st.button(f"→ {lang_label(tgt_code)}", key=f"demo-{i}-{tgt_code}"):
                     with st.spinner("Translating..."):
                         out = translator.translate([psa["text"]], src=psa["src"],
-                                                   tgt=tgt_code)[0]
+                                                   tgt=tgt_code,
+                                                   no_repeat_ngram_size=3)[0]
                     st.write(out)
         st.divider()
