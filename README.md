@@ -23,7 +23,7 @@ few-shot cross-lingual transfer learning on our curated PSA dataset.
 | 1 | Data collection & curation | ✅ Complete |
 | 2 | Preprocessing & EDA | ✅ Complete |
 | 3 | Modeling with transfer learning (mT5-small / NLLB-200) | ✅ Complete |
-| 4 | Evaluation, deployment & documentation | ⬜ Next |
+| 4 | Evaluation, deployment & documentation | 🔨 In progress |
 
 ## Dataset at a glance
 
@@ -181,6 +181,12 @@ python scripts/run_ablations.py --matrix standard   # full ablation matrix
 python scripts/run_eval.py --checkpoint runs/ft_nllb_base/checkpoint-best
 python scripts/translate.py --checkpoint runs/ft_nllb_guz_all/checkpoint-best --demo
 
+# --- Week 4: final eval, error analysis, human eval, deployment ---
+python scripts/run_week4_eval.py --checkpoint runs/ft_nllb_guz_all/checkpoint-best
+python scripts/error_analysis.py                 # no GPU needed, reads the eval above
+python scripts/build_human_eval_sheet.py --n-per-domain 6
+streamlit run app.py                             # deployment demo
+
 # --- Any time: run the test suite ---
 python tests/test_smoke.py
 ```
@@ -203,6 +209,23 @@ Outputs:
 - `data/processed/splits/` — train.csv, dev.csv, test.csv + split_stats.json
 - `reports/week2_eda_report.md` + `reports/figures/` — auto EDA report + 6 figures
 - `reports/week1_report_auto.md` — auto stats report (git-ignored, regenerable)
+- `reports/week4_eval/summary.json` + `predictions/<direction>.csv` — full
+  test-split scores (overall + per domain) and per-row predictions
+- `reports/week4_error_analysis.md` — per-domain breakdown + worst/flagged examples
+- `data/validation/week4_model_output_review.csv` — human-eval sample of model output
+- `reports/week4_report.md` — Week 4 write-up (see `docs/SPEC_WEEK4.md`)
+
+## Deployment
+
+`app.py` is a Streamlit demo wrapping `training.inference.MTTranslator` —
+free-text translation between English / Kiswahili / Ekegusii, plus the
+8-PSA demo table from `scripts/translate.py --demo`. See
+`docs/SPEC_WEEK4.md` §4.
+
+```
+pip install -r requirements.txt -r requirements-training.txt -r requirements-app.txt
+streamlit run app.py
+```
 
 ## Data strategy (four tiers)
 

@@ -1,0 +1,5 @@
+# Week 4 deployment app (docs/SPEC_WEEK4.md). Install alongside
+# requirements.txt + requirements-training.txt — app.py loads a fine-tuned
+# checkpoint via training.inference.MTTranslator, so the training stack's
+# torch/transformers are needed too.
+streamlit>=1.34
