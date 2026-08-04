@@ -91,11 +91,14 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── run_training.py      # Week 3: one training run with a named config
 │   ├── run_ablations.py     # Week 3: run the ablation matrix
 │   ├── run_eval.py          # Week 3: evaluate checkpoint(s)
-│   └── translate.py         # Week 3: translation demo CLI (success criterion)
+│   ├── translate.py         # Week 3: translation demo CLI (success criterion)
+│   ├── run_week4_eval.py    # Week 4: full test-split eval, all 4 directions, per-domain
+│   ├── error_analysis.py    # Week 4: worst/flagged examples from eval predictions (no GPU)
+│   └── build_human_eval_sheet.py  # Week 4: stratified sample for native-speaker rating
 ├── tests/
 │   ├── fixtures/            # small TMX + synthetic CSV + benchmark TSV fixtures
 │   ├── test_smoke.py        # test suite (run before committing)
-│   └── test_week3_*.py      # Week 3 modules (auto-discovered by test_smoke.py)
+│   └── test_week*_*.py      # Week 3/4 modules (auto-discovered by test_smoke.py)
 ├── data/
 │   ├── raw/                 # untouched raw exports
 │   ├── processed/           # dataset CSV, build stats, preprocessed CSV, splits/
@@ -108,7 +111,9 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── ETHICS.md            # scraping ethics: robots.txt, rate limits, licensing
 │   ├── team_written_psa_kit.md  # how the team-written PSAs were produced
 │   ├── validation_guide.md  # native-speaker validation guidelines
-│   └── week3_kinesis_guide.md # Navon Cloud/Kinesis GPU training runbook
+│   ├── week3_kinesis_guide.md # Navon Cloud/Kinesis GPU training runbook
+│   ├── SPEC_WEEK4.md        # Week 4 contracts (eval, error analysis, human eval, app)
+│   └── week4_human_eval_guide.md # reviewer instructions for rating model Ekegusii output
 ├── reports/
 │   ├── week1_report.md      # Week 1 report (data collection & curation)
 │   ├── week2_report.md      # Week 2 report (preprocessing & EDA)
@@ -116,9 +121,13 @@ corpus 3,004 · audited scraped PSAs 817 · team-written 150.
 │   ├── framework_audit.md   # PSA framework audit: per-source kept/dropped, method
 │   ├── week3_report.md      # Week 3 report (modeling with transfer learning)
 │   ├── week3_results.md     # auto-generated ablation results table
+│   ├── week4_report.md      # Week 4 report (evaluation, deployment & documentation)
+│   ├── week4_eval/          # full test-split scores + per-row predictions (generated)
 │   └── figures/             # 6 EDA figures (domain, length, pairing, sources)
+├── app.py                   # Week 4 deployment: Streamlit demo (streamlit run app.py)
 ├── requirements.txt         # Weeks 1–2 dependencies
-└── requirements-training.txt  # Week 3 ML stack (torch, transformers, wandb…)
+├── requirements-training.txt  # Week 3 ML stack (torch, transformers, wandb…)
+└── requirements-app.txt     # Week 4 app dependency (streamlit)
 ```
 
 ## Dataset schema

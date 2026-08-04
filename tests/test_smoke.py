@@ -156,10 +156,10 @@ def main():
     test_eda_smoke()
     test_manual_import()
     test_run_week2_cli()
-    # Week 3 — discovered modules (each exposes run(); self-skipping when
+    # Week 3+ — discovered modules (each exposes run(); self-skipping when
     # optional deps like torch/transformers/datasets are unavailable)
-    week3_dir = Path(__file__).parent
-    for mod_path in sorted(week3_dir.glob("test_week3_*.py")):
+    tests_dir = Path(__file__).parent
+    for mod_path in sorted(tests_dir.glob("test_week*_*.py")):
         spec = importlib.util.spec_from_file_location(mod_path.stem, mod_path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
