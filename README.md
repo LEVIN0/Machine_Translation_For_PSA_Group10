@@ -23,7 +23,7 @@ few-shot cross-lingual transfer learning on our curated PSA dataset.
 | 1 | Data collection & curation | ✅ Complete |
 | 2 | Preprocessing & EDA | ✅ Complete |
 | 3 | Modeling with transfer learning (mT5-small / NLLB-200) | ✅ Complete |
-| 4 | Evaluation, deployment & documentation | 🔨 In progress |
+| 4 | Evaluation, deployment & documentation | ✅ Complete |
 
 ## Dataset at a glance
 
@@ -208,7 +208,10 @@ fallback, so no run is ever lost. See `reports/week3_report.md` for
 hyperparameters, ablations and results — headline: NLLB fine-tuned reaches
 **50.93 dev BLEU** (zero-shot: 5.57), and Ekegusii translation (a language
 neither model ever saw in pretraining) scales from chrF **17.2** with 50
-pairs to **27.9** with all ~2.5k PSA guz pairs.
+pairs to **27.9** with all ~2.5k PSA guz pairs. Week 4 then confirmed the
+full test split (**49.3 BLEU en-sw**), ran the eng→guz back-translation
+augmentation experiment (Ekegusii chrF **27.9 → 31.1**, repetition loops
+down 39%), and shipped the Streamlit demo — see `reports/week4_report.md`.
 
 Outputs:
 

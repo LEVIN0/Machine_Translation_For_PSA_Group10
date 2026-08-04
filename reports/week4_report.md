@@ -105,16 +105,21 @@ Sheet built with:
 python scripts/build_human_eval_sheet.py --n-per-domain 6
 ```
 
-<!-- TODO: once data/validation/week4_model_output_review_reviewed_<name>.csv
-     comes back — mean Fluency_1to5 / Adequacy_1to5 overall and per domain,
-     and a tally of the Issues tags (mistranslation, omission, addition,
-     grammar, repetition_loop, language_confusion, cultural term). -->
-
 | Metric | Score |
 |---|---:|
-| Mean fluency (1-5) | TODO |
-| Mean adequacy (1-5) | TODO |
-| Rows with no issues flagged | TODO / TODO |
+| Mean fluency (1-5) | pending reviewer |
+| Mean adequacy (1-5) | pending reviewer |
+| Rows with no issues flagged | pending reviewer |
+
+*Status: prepared, awaiting a native-speaker reviewer.* The 30-row
+domain-stratified sheet (`data/validation/week4_model_output_review.csv`)
+and reviewer instructions (`docs/week4_human_eval_guide.md`) are complete
+and committed; the ratings table will be filled from
+`week4_model_output_review_reviewed_<name>.csv` when a reviewer's sheet
+comes back (mean Fluency/Adequacy overall and per domain, plus a tally of
+the Issues tags: mistranslation, omission, addition, grammar,
+repetition_loop, language_confusion, cultural term). All automatic
+evidence (§2, §3, §7) stands independently of this item.
 
 ## 5. Deployment
 
@@ -132,7 +137,29 @@ pip install -r requirements.txt -r requirements-training.txt -r requirements-app
 streamlit run app.py
 ```
 
-<!-- TODO: screenshot(s) of the running app, once deployed / run locally. -->
+The running app (augmented checkpoint `ft_nllb_guz_aug`, CPU inference):
+
+English → Ekegusii, Education demo PSA
+(`reports/figures/SampleEducation_PSA_English-to-Ekegusii.png`):
+
+![EN to Ekegusii demo](figures/SampleEducation_PSA_English-to-Ekegusii.png)
+
+Swahili → Ekegusii, Governance demo PSA
+(`reports/figures/SampleGovernance_PSA_Swahili-to-Ekegusii.png`):
+
+![SW to Ekegusii demo](figures/SampleGovernance_PSA_Swahili-to-Ekegusii.png)
+
+English → Swahili, Health demo PSA
+(`reports/figures/SampleHealth_PSA_English-to-Swahili.png`):
+
+![EN to Swahili demo](figures/SampleHealth_PSA_English-to-Swahili.png)
+
+The full screenshot set across all five domains and both target
+languages is in `reports/figures/` (`Sample*.png`). One demo input (the
+Health hand-washing PSA, en→guz) still exhibits the language-confusion
+failure documented in §3 — output in fluent Swahili instead of Ekegusii —
+on both the original and augmented checkpoints; it is shown here not as
+a cherry-picked omission but as a quantified, residual failure mode.
 
 ## 6. Limitations
 
@@ -154,9 +181,59 @@ streamlit run app.py
   27.92); any deployment framing should present Ekegusii *generation* as
   the demonstrated capability, with guz→en understood as preliminary.
 
-## 7. Conclusion
+## 7. Ekegusii augmentation experiment
 
-<!-- TODO: one paragraph — does the final evaluation support Week 3's
-     headline claim (successful few-shot transfer to an unseen language),
-     what the human evaluation adds/complicates, and what the deployment
-     demo shows end-to-end. -->
+The §2/§3 results (16.7% repetition-loop rate, plus the Week 3 finding
+that guz quality scales monotonically with pair count) motivated one
+targeted intervention rather than accepting the baseline as final:
+**eng→guz back-translation augmentation** (`docs/SPEC_WEEK4.md` §6).
+
+Method: the 3,577 train-split rows lacking Ekegusii (English-only and
+EN-SW rows) were translated en→guz by `ft_nllb_guz_all` itself, decoding
+with `no_repeat_ngram_size=3` and dropping empty/copy-through outputs;
+existing Kiswahili text was carried over so sw-guz pairs formed too
+(`data/processed/augmented_guz.csv`; empty/copy-through generations
+dropped during generation). `ft_nllb_guz_aug` was then trained with the identical recipe
+as `ft_nllb_guz_all` plus these pairs (train split only — test split and
+benchmark untouched, no leakage), and evaluated with the identical
+`run_week4_eval.py` pipeline:
+
+| Direction | ft_nllb_guz_all | ft_nllb_guz_aug | Δ |
+|---|---:|---:|---:|
+| en-sw BLEU / chrF | 49.31 / 72.23 | 49.06 / 72.71 | −0.25 / +0.48 |
+| sw-en BLEU / chrF | 47.63 / 68.64 | 48.38 / 69.10 | **+0.75 / +0.46** |
+| **en-guz BLEU / chrF** | 3.56 / 27.92 | **4.58 / 31.14** | **+1.02 / +3.22** |
+| **en-guz repetition-flagged** | 23/138 (16.7%) | **14/138 (10.1%)** | **−39%** |
+| guz-en BLEU / chrF | 3.43 / 19.54 | 3.41 / 20.05 | −0.02 / +0.51 |
+
+The intervention did exactly what the scaling curve predicted: en-guz
+chrF rose +3.22 and repetition loops fell 39%, while EN↔SW quality was
+unchanged within noise. The augmented model is therefore the deployment
+checkpoint (§5) and the project's headline Ekegusii result. Full detail:
+`reports/week4_eval_aug/`, `reports/week4_error_analysis_aug.md`.
+Residual failure modes (occasional language confusion / copy-through on
+low-confidence inputs) persist at reduced rates — synthetic data from
+the model's own outputs cannot add information the base model lacks, it
+only consolidates it; the next real gain would require more *human*
+Ekegusii translations.
+
+## 8. Conclusion
+
+The final evaluation supports Week 3's headline claim, and strengthens
+it. On the full, untouched test split, the fine-tuned NLLB-200-600M
+translates Public Service Announcements between English and Kiswahili at
+production-plausible quality (49.3 BLEU en-sw) — within a third of a
+point of its dev performance, so the Week 3 ablation numbers were not
+overfit to the dev split. For Ekegusii — a language absent from NLLB's
+204-language training set — few-shot transfer via a donor-initialized
+`guz_Latn` token yields real, morphologically Ekegusii output (chrF
+31.14 after augmentation, up from 27.92, with repetition loops down
+39%), while the guz→en direction and a residue of confusion/copy-through
+failures honestly mark the limits of ~2.5k gold pairs. The project thus
+ends not with a single number but with a measured cause-and-effect
+story: we identified data scarcity as the bottleneck (Week 3 scaling
+curve), confirmed it by fixing it (Week 4 augmentation), and shipped the
+result as a working bilingual-trilingual web demo (`app.py`). The
+prepared native-speaker evaluation (§4) remains the one open item; if
+completed it will add human fluency/adequacy judgements on top of the
+automatic evidence here.
