@@ -1,0 +1,182 @@
+{
+  "checkpoint": "runs/ft_nllb_guz_all/checkpoint-best",
+  "model_key": "nllb_600m",
+  "results": {
+    "en-sw": {
+      "n": 304,
+      "bleu": 49.31,
+      "chrf": 72.23,
+      "repetition_flagged": 0,
+      "by_domain": [
+        {
+          "domain": "Agriculture",
+          "n": 19,
+          "bleu": 61.73,
+          "chrf": 78.9,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Education",
+          "n": 41,
+          "bleu": 52.85,
+          "chrf": 76.5,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Governance",
+          "n": 23,
+          "bleu": 59.57,
+          "chrf": 79.96,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Health",
+          "n": 177,
+          "bleu": 44.76,
+          "chrf": 68.96,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Security",
+          "n": 44,
+          "bleu": 57.41,
+          "chrf": 77.73,
+          "repetition_flagged": 0
+        }
+      ],
+      "seconds": 21.7
+    },
+    "sw-en": {
+      "n": 304,
+      "bleu": 47.63,
+      "chrf": 68.64,
+      "repetition_flagged": 0,
+      "by_domain": [
+        {
+          "domain": "Agriculture",
+          "n": 19,
+          "bleu": 50.52,
+          "chrf": 72.47,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Education",
+          "n": 41,
+          "bleu": 53.71,
+          "chrf": 72.69,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Governance",
+          "n": 23,
+          "bleu": 54.18,
+          "chrf": 74.27,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Health",
+          "n": 177,
+          "bleu": 44.39,
+          "chrf": 65.61,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Security",
+          "n": 44,
+          "bleu": 56.71,
+          "chrf": 76.56,
+          "repetition_flagged": 0
+        }
+      ],
+      "seconds": 17.0
+    },
+    "en-guz": {
+      "n": 138,
+      "bleu": 3.56,
+      "chrf": 27.92,
+      "repetition_flagged": 23,
+      "by_domain": [
+        {
+          "domain": "Agriculture",
+          "n": 19,
+          "bleu": 4.03,
+          "chrf": 28.34,
+          "repetition_flagged": 3
+        },
+        {
+          "domain": "Education",
+          "n": 38,
+          "bleu": 3.91,
+          "chrf": 29.3,
+          "repetition_flagged": 3
+        },
+        {
+          "domain": "Governance",
+          "n": 18,
+          "bleu": 6.42,
+          "chrf": 34.16,
+          "repetition_flagged": 1
+        },
+        {
+          "domain": "Health",
+          "n": 25,
+          "bleu": 3.07,
+          "chrf": 24.3,
+          "repetition_flagged": 8
+        },
+        {
+          "domain": "Security",
+          "n": 38,
+          "bleu": 2.01,
+          "chrf": 26.15,
+          "repetition_flagged": 8
+        }
+      ],
+      "seconds": 18.2
+    },
+    "guz-en": {
+      "n": 138,
+      "bleu": 3.43,
+      "chrf": 19.54,
+      "repetition_flagged": 0,
+      "by_domain": [
+        {
+          "domain": "Agriculture",
+          "n": 19,
+          "bleu": 2.9,
+          "chrf": 17.53,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Education",
+          "n": 38,
+          "bleu": 3.16,
+          "chrf": 19.16,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Governance",
+          "n": 18,
+          "bleu": 4.31,
+          "chrf": 19.45,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Health",
+          "n": 25,
+          "bleu": 5.43,
+          "chrf": 22.33,
+          "repetition_flagged": 0
+        },
+        {
+          "domain": "Security",
+          "n": 38,
+          "bleu": 1.0,
+          "chrf": 18.86,
+          "repetition_flagged": 0
+        }
+      ],
+      "seconds": 13.5
+    }
+  }
+}
